@@ -34,7 +34,7 @@ interface TransactionState {
 
 export const useTransactionStore = create<TransactionState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       transactions: [],
       pendingCount: 0,
 

@@ -51,19 +51,23 @@ export function DoomScrollPage() {
   const userId = useUserStore((state) => state.userId)
   const author = useUserStore((state) => state.author)
   const following = useUserStore((state) => state.following)
+  const isHidden = useUserStore((state) => state.isHidden)
 
   // Compute feed from raw data
   const posts = useMemo(() => {
     return doomFeed.map((id) => allPosts[id]).filter(Boolean)
   }, [allPosts, doomFeed])
 
-  // Filter posts based on active tab
+  // Filter posts based on active tab and hidden users (blocked/muted)
   const filteredPosts = useMemo(() => {
+    // First filter out blocked/muted users
+    const visiblePosts = posts.filter((post) => !isHidden(post.author.username))
+
     if (activeTab === 'following') {
-      return posts.filter((post) => following.includes(post.author.username))
+      return visiblePosts.filter((post) => following.includes(post.author.username))
     }
-    return posts
-  }, [posts, activeTab, following])
+    return visiblePosts
+  }, [posts, activeTab, following, isHidden])
 
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {

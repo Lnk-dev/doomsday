@@ -10,6 +10,7 @@ import { EventDetailPage } from '@/pages/EventDetailPage'
 import { CreateEventPage } from '@/pages/CreateEventPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { PostDetailPage } from '@/pages/PostDetailPage'
+import { LifeTimelinePage } from '@/pages/LifeTimelinePage'
 import './index.css'
 
 function App() {
@@ -27,6 +28,8 @@ function App() {
           <Route path="/events/create" element={<CreateEventPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/post/:postId" element={<PostDetailPage />} />
+          <Route path="/timeline" element={<LifeTimelinePage />} />
+          <Route path="/timeline/:username" element={<LifeTimelinePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

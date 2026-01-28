@@ -78,12 +78,12 @@ describe('ErrorBoundary', () => {
 
     it('should show error details', () => {
       render(
-        <ErrorBoundary>
+        <ErrorBoundary showDetails={true}>
           <ThrowingComponent />
         </ErrorBoundary>
       )
 
-      const details = screen.getByText('Error details')
+      const details = screen.getByText('Show error details')
       fireEvent.click(details)
 
       expect(screen.getByText('Test error message')).toBeInTheDocument()
@@ -148,14 +148,14 @@ describe('ErrorBoundary', () => {
       expect(container).toBeInTheDocument()
     })
 
-    it('should have black background', () => {
+    it('should have background using CSS variable', () => {
       render(
         <ErrorBoundary>
           <ThrowingComponent />
         </ErrorBoundary>
       )
 
-      const container = document.querySelector('.bg-black')
+      const container = document.querySelector('.bg-\\[var\\(--color-bg-primary\\,\\#000\\)\\]')
       expect(container).toBeInTheDocument()
     })
   })
@@ -175,13 +175,14 @@ describe('ErrorBoundary', () => {
 
     it('should have accessible buttons', () => {
       render(
-        <ErrorBoundary>
+        <ErrorBoundary showDetails={true}>
           <ThrowingComponent />
         </ErrorBoundary>
       )
 
       const buttons = screen.getAllByRole('button')
-      expect(buttons).toHaveLength(2)
+      // 4 buttons: Show error details, Try Again, Go Home, Reload App
+      expect(buttons).toHaveLength(4)
     })
   })
 })

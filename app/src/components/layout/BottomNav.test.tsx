@@ -62,10 +62,10 @@ describe('BottomNav', () => {
       expect(homeLink).toBeInTheDocument()
     })
 
-    it('should have link to discover (/events)', () => {
+    it('should have link to discover (/discover)', () => {
       renderWithRouter()
       const discoverLink = screen.getAllByRole('link').find((link) =>
-        link.getAttribute('href') === '/events'
+        link.getAttribute('href') === '/discover'
       )
       expect(discoverLink).toBeInTheDocument()
     })
@@ -105,9 +105,9 @@ describe('BottomNav', () => {
     })
 
     it('should highlight discover link when on discover route', () => {
-      renderWithRouter('/events')
+      renderWithRouter('/discover')
       const discoverLink = screen.getAllByRole('link').find((link) =>
-        link.getAttribute('href') === '/events'
+        link.getAttribute('href') === '/discover'
       )
       expect(discoverLink).toHaveClass('text-white')
     })
@@ -115,7 +115,7 @@ describe('BottomNav', () => {
     it('should not highlight inactive links', () => {
       renderWithRouter('/')
       const discoverLink = screen.getAllByRole('link').find((link) =>
-        link.getAttribute('href') === '/events'
+        link.getAttribute('href') === '/discover'
       )
       expect(discoverLink).toHaveClass('text-[#777]')
     })

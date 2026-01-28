@@ -94,7 +94,7 @@ describe('DonationModal', () => {
     it('should be disabled when amount is 0', () => {
       render(<DonationModal {...defaultProps} />)
 
-      const donateButton = screen.getByRole('button', { name: /Send 0 \$LIFE/i })
+      const donateButton = screen.getByRole('button', { name: /Enter Amount/i })
       expect(donateButton).toBeDisabled()
     })
 

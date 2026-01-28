@@ -215,7 +215,8 @@ describe('ThreadPost', () => {
       render(<ThreadPost {...defaultProps} />)
 
       const buttons = screen.getAllByRole('button')
-      expect(buttons.length).toBe(5)
+      // 6 buttons: like, comment, repost, share, bookmark, more options
+      expect(buttons.length).toBe(6)
     })
   })
 

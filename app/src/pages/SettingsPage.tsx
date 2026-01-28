@@ -281,6 +281,7 @@ export function SettingsPage() {
             icon={<HelpCircle size={20} />}
             label="Help & FAQ"
             description="Get help with Doomsday"
+            onClick={() => navigate('/help')}
           />
         </div>
       </div>

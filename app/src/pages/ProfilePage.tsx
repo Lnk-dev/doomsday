@@ -11,14 +11,16 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
-import { Settings, Globe } from 'lucide-react'
-import { useUserStore, usePostsStore } from '@/store'
-import { formatRelativeTime } from '@/lib/utils'
+import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles } from 'lucide-react'
+import { useUserStore, usePostsStore, useEventsStore } from '@/store'
+import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
-type ProfileTab = 'threads' | 'replies' | 'reposts'
+type ProfileTab = 'threads' | 'bets' | 'replies'
 
 export function ProfilePage() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
 
   // User store
@@ -36,10 +38,15 @@ export function ProfilePage() {
     (post) => post.author.username === author.username
   ).sort((a, b) => b.createdAt - a.createdAt)
 
+  // Get user's bets
+  const getUserBets = useEventsStore((state) => state.getUserBets)
+  const getEvent = useEventsStore((state) => state.getEvent)
+  const userBets = getUserBets(userId)
+
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'threads', label: 'Threads' },
+    { id: 'bets', label: `Bets (${userBets.length})` },
     { id: 'replies', label: 'Replies' },
-    { id: 'reposts', label: 'Reposts' },
   ]
 
   return (
@@ -141,29 +148,133 @@ export function ProfilePage() {
         ))}
       </div>
 
-      {/* User posts */}
-      {userPosts.length > 0 ? (
-        <div className="divide-y divide-[#333]">
-          {userPosts.map((post) => (
-            <ThreadPost
-              key={post.id}
-              author={post.author}
-              content={post.content}
-              timestamp={formatRelativeTime(post.createdAt)}
-              likes={post.likes}
-              replies={post.replies}
-              variant={post.variant}
-              isLiked={post.likedBy.includes(userId)}
-            />
-          ))}
-        </div>
-      ) : (
+      {/* Tab content */}
+      {activeTab === 'threads' && (
+        userPosts.length > 0 ? (
+          <div className="divide-y divide-[#333]">
+            {userPosts.map((post) => (
+              <ThreadPost
+                key={post.id}
+                author={post.author}
+                content={post.content}
+                timestamp={formatRelativeTime(post.createdAt)}
+                likes={post.likes}
+                replies={post.replies}
+                variant={post.variant}
+                isLiked={post.likedBy.includes(userId)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
+            <p className="text-[15px] text-[#777] text-center">
+              You haven't posted anything yet.
+            </p>
+            <p className="text-[13px] text-[#555] text-center mt-1">
+              Your posts will appear here.
+            </p>
+          </div>
+        )
+      )}
+
+      {activeTab === 'bets' && (
+        userBets.length > 0 ? (
+          <div className="divide-y divide-[#333]">
+            {userBets.map((bet) => {
+              const event = getEvent(bet.eventId)
+              if (!event) return null
+
+              const totalStake = event.doomStake + event.lifeStake
+              const myStakePool = bet.side === 'doom' ? event.doomStake : event.lifeStake
+              const potentialWin = myStakePool > 0
+                ? (bet.amount / myStakePool) * totalStake
+                : bet.amount * 2
+
+              return (
+                <button
+                  key={bet.id}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  className="w-full p-4 hover:bg-[#111] transition-colors text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Side indicator */}
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        bet.side === 'doom' ? 'bg-[#ff304020]' : 'bg-[#00ba7c20]'
+                      }`}
+                    >
+                      {bet.side === 'doom' ? (
+                        <AlertTriangle size={18} className="text-[#ff3040]" />
+                      ) : (
+                        <Sparkles size={18} className="text-[#00ba7c]" />
+                      )}
+                    </div>
+
+                    {/* Event info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                            bet.side === 'doom'
+                              ? 'bg-[#ff304030] text-[#ff3040]'
+                              : 'bg-[#00ba7c30] text-[#00ba7c]'
+                          }`}
+                        >
+                          {bet.side.toUpperCase()}
+                        </span>
+                        <span className="text-[11px] text-[#555]">
+                          {formatRelativeTime(bet.createdAt)}
+                        </span>
+                      </div>
+                      <h4 className="text-[14px] font-semibold text-white truncate">
+                        {event.title}
+                      </h4>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[12px] text-[#777] flex items-center gap-1">
+                          <Clock size={10} />
+                          {formatCountdown(event.countdownEnd)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bet stats */}
+                    <div className="text-right">
+                      <p className="text-[14px] font-bold text-white">
+                        {formatNumber(bet.amount)}
+                      </p>
+                      <p className="text-[11px] text-[#777]">staked</p>
+                      <div className="flex items-center gap-1 mt-1 justify-end text-[#00ba7c]">
+                        <TrendingUp size={10} />
+                        <span className="text-[11px] font-medium">
+                          {formatNumber(Math.floor(potentialWin))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
+            <AlertTriangle size={48} className="text-[#333] mb-4" />
+            <p className="text-[15px] text-[#777] text-center">
+              No active bets yet.
+            </p>
+            <button
+              onClick={() => navigate('/events')}
+              className="mt-4 px-6 py-2 rounded-xl bg-[#ff3040] text-white text-[14px] font-semibold"
+            >
+              Browse Events
+            </button>
+          </div>
+        )
+      )}
+
+      {activeTab === 'replies' && (
         <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
           <p className="text-[15px] text-[#777] text-center">
-            You haven't posted anything yet.
-          </p>
-          <p className="text-[13px] text-[#555] text-center mt-1">
-            Your posts will appear here.
+            No replies yet.
           </p>
         </div>
       )}

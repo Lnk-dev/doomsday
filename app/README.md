@@ -80,6 +80,9 @@ src/
 - [Architecture](docs/ARCHITECTURE.md) - System design and patterns
 - [Features](docs/FEATURES.md) - Detailed feature documentation
 - [Store API](docs/STORE-API.md) - State management reference
+- [Deployment](docs/DEPLOYMENT.md) - Setup and deployment guide
+- [Infrastructure](docs/INFRASTRUCTURE.md) - Architecture and service dependencies
+- [Production Checklist](docs/PRODUCTION_CHECKLIST.md) - Pre-launch requirements
 - [Contributing](CONTRIBUTING.md) - Branch strategy and workflow
 
 ## Branch Strategy

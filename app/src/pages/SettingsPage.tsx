@@ -22,6 +22,9 @@ import {
   Trash2,
   Volume2,
   Eye,
+  Ban,
+  VolumeX,
+  X,
 } from 'lucide-react'
 import { useUserStore, useThemeStore } from '@/store'
 import { useState } from 'react'
@@ -84,6 +87,10 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const author = useUserStore((state) => state.author)
   const isConnected = useUserStore((state) => state.isConnected)
+  const blocked = useUserStore((state) => state.blocked)
+  const muted = useUserStore((state) => state.muted)
+  const unblockUser = useUserStore((state) => state.unblockUser)
+  const unmuteUser = useUserStore((state) => state.unmuteUser)
 
   // Theme store
   const themeMode = useThemeStore((state) => state.mode)
@@ -94,6 +101,8 @@ export function SettingsPage() {
   const [notifications, setNotifications] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showBalance, setShowBalance] = useState(true)
+  const [showBlockedList, setShowBlockedList] = useState(false)
+  const [showMutedList, setShowMutedList] = useState(false)
 
   /** Handle logout */
   const handleLogout = () => {
@@ -167,6 +176,79 @@ export function SettingsPage() {
             description="Display token balances"
             rightElement={<Toggle enabled={showBalance} onChange={setShowBalance} />}
           />
+        </div>
+      </div>
+
+      {/* Privacy section - Blocked & Muted */}
+      <div className="mt-6">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">PRIVACY</h2>
+        <div className="border-y border-[var(--color-border)]">
+          <SettingItem
+            icon={<Ban size={20} />}
+            label="Blocked users"
+            description={`${blocked.length} blocked`}
+            onClick={() => setShowBlockedList(!showBlockedList)}
+            rightElement={
+              <ChevronRight
+                size={18}
+                className={`text-[var(--color-text-muted)] transition-transform ${showBlockedList ? 'rotate-90' : ''}`}
+              />
+            }
+          />
+          {showBlockedList && blocked.length > 0 && (
+            <div className="bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              {blocked.map((username) => (
+                <div key={username} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-[14px] text-[var(--color-text-primary)]">@{username}</span>
+                  <button
+                    onClick={() => unblockUser(username)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-bg-primary)] text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <X size={12} />
+                    Unblock
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showBlockedList && blocked.length === 0 && (
+            <div className="px-4 py-3 text-[13px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              No blocked users
+            </div>
+          )}
+          <SettingItem
+            icon={<VolumeX size={20} />}
+            label="Muted users"
+            description={`${muted.length} muted`}
+            onClick={() => setShowMutedList(!showMutedList)}
+            rightElement={
+              <ChevronRight
+                size={18}
+                className={`text-[var(--color-text-muted)] transition-transform ${showMutedList ? 'rotate-90' : ''}`}
+              />
+            }
+          />
+          {showMutedList && muted.length > 0 && (
+            <div className="bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              {muted.map((username) => (
+                <div key={username} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-[14px] text-[var(--color-text-primary)]">@{username}</span>
+                  <button
+                    onClick={() => unmuteUser(username)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-bg-primary)] text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <X size={12} />
+                    Unmute
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showMutedList && muted.length === 0 && (
+            <div className="px-4 py-3 text-[13px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              No muted users
+            </div>
+          )}
         </div>
       </div>
 

@@ -14,7 +14,7 @@ import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCh
 import { ShareModal } from '@/components/ui/ShareModal'
 import { usePostsStore, useUserStore, useCommentsStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 
 export function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -30,11 +30,32 @@ export function PostDetailPage() {
   const followUser = useUserStore((state) => state.followUser)
   const unfollowUser = useUserStore((state) => state.unfollowUser)
 
-  // Comments store
-  const comments = useCommentsStore((state) => state.getCommentsForPost(postId || ''))
+  // Comments store hooks
+  const commentsData = useCommentsStore((state) => state.commentsByPost[postId || ''] || [])
+  const allComments = useCommentsStore((state) => state.comments)
   const addComment = useCommentsStore((state) => state.addComment)
   const likeComment = useCommentsStore((state) => state.likeComment)
   const unlikeComment = useCommentsStore((state) => state.unlikeComment)
+  const getCommentCount = useCommentsStore((state) => state.getCommentCount)
+
+  // Posts store for updating reply count
+  const updateReplyCount = usePostsStore((state) => state.updateReplyCount)
+
+  // Get comments for this post, sorted by creation time
+  const comments = useMemo(() => {
+    return commentsData
+      .map((id) => allComments[id])
+      .filter(Boolean)
+      .sort((a, b) => a.createdAt - b.createdAt)
+  }, [commentsData, allComments])
+
+  // Sync reply count with posts store
+  useEffect(() => {
+    if (postId) {
+      const count = getCommentCount(postId)
+      updateReplyCount(postId, count)
+    }
+  }, [postId, comments.length, getCommentCount, updateReplyCount])
 
   const [newComment, setNewComment] = useState('')
   const [showShareModal, setShowShareModal] = useState(false)
@@ -185,53 +206,56 @@ export function PostDetailPage() {
         </div>
 
         <div className="divide-y divide-[#222]">
-          {comments.map((comment) => (
-            <div key={comment.id} className="px-4 py-3">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#333] flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[14px] font-semibold text-white">
-                      @{comment.authorUsername}
-                    </span>
-                    <span className="text-[12px] text-[#555]">
-                      {formatRelativeTime(comment.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-[14px] text-[#ccc]">{comment.content}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <button
-                      onClick={() => {
-                        if (comment.likedBy?.includes(userId)) {
-                          unlikeComment(comment.id, userId)
-                        } else {
-                          likeComment(comment.id, userId)
-                        }
-                      }}
-                      className={`flex items-center gap-1 text-[12px] transition-colors ${
-                        comment.likedBy?.includes(userId)
-                          ? 'text-[#ff3040]'
-                          : 'text-[#777] hover:text-[#ff3040]'
-                      }`}
-                    >
-                      <Heart size={14} fill={comment.likedBy?.includes(userId) ? '#ff3040' : 'none'} />
-                      {comment.likes}
-                    </button>
-                    <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#3b82f6]">
-                      <MessageCircle size={14} />
-                      Reply
-                    </button>
-                    {comment.isPending && (
-                      <span className="text-[10px] text-[#555]">Sending...</span>
-                    )}
-                    {comment.error && (
-                      <span className="text-[10px] text-[#ff3040]">{comment.error}</span>
-                    )}
+          {comments.map((comment) => {
+            const isCommentLiked = comment.likedBy.includes(userId)
+            return (
+              <div key={comment.id} className={`px-4 py-3 ${comment.isPending ? 'opacity-60' : ''}`}>
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#333] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[14px] font-semibold text-white">
+                        @{comment.authorUsername}
+                      </span>
+                      <span className="text-[12px] text-[#555]">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
+                      {comment.isPending && (
+                        <span className="text-[10px] text-[#555]">Sending...</span>
+                      )}
+                      {comment.error && (
+                        <span className="text-[10px] text-[#ff3040]">{comment.error}</span>
+                      )}
+                    </div>
+                    <p className="text-[14px] text-[#ccc]">{comment.content}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <button
+                        onClick={() => {
+                          if (isCommentLiked) {
+                            unlikeComment(comment.id, userId)
+                          } else {
+                            likeComment(comment.id, userId)
+                          }
+                        }}
+                        className={`flex items-center gap-1 text-[12px] transition-colors ${
+                          isCommentLiked
+                            ? 'text-[#ff3040]'
+                            : 'text-[#777] hover:text-[#ff3040]'
+                        }`}
+                      >
+                        <Heart size={14} fill={isCommentLiked ? '#ff3040' : 'none'} />
+                        {comment.likes}
+                      </button>
+                      <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#3b82f6]">
+                        <MessageCircle size={14} />
+                        Reply
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

@@ -14,7 +14,7 @@ import { ThreadPost } from '@/components/ui/ThreadPost'
 import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles } from 'lucide-react'
 import { useUserStore, usePostsStore, useEventsStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 type ProfileTab = 'threads' | 'bets' | 'replies'
@@ -28,20 +28,31 @@ export function ProfilePage() {
   const doomBalance = useUserStore((state) => state.doomBalance)
   const lifeBalance = useUserStore((state) => state.lifeBalance)
   const daysLiving = useUserStore((state) => state.daysLiving)
-  const lifePosts = useUserStore((state) => state.lifePosts)
+  const lifePostsCount = useUserStore((state) => state.lifePosts)
   const isConnected = useUserStore((state) => state.isConnected)
   const userId = useUserStore((state) => state.userId)
 
-  // Get user's posts
+  // Get raw data (stable references)
   const allPosts = usePostsStore((state) => state.posts)
-  const userPosts = Object.values(allPosts).filter(
-    (post) => post.author.username === author.username
-  ).sort((a, b) => b.createdAt - a.createdAt)
+  const bets = useEventsStore((state) => state.bets)
+  const events = useEventsStore((state) => state.events)
 
-  // Get user's bets
-  const getUserBets = useEventsStore((state) => state.getUserBets)
-  const getEvent = useEventsStore((state) => state.getEvent)
-  const userBets = getUserBets(userId)
+  // Compute user's posts
+  const userPosts = useMemo(() => {
+    return Object.values(allPosts)
+      .filter((post) => post.author.username === author.username)
+      .sort((a, b) => b.createdAt - a.createdAt)
+  }, [allPosts, author.username])
+
+  // Compute user's bets
+  const userBets = useMemo(() => {
+    return bets.filter((bet) => bet.userId === userId)
+  }, [bets, userId])
+
+  // Get event by ID (stable callback)
+  const getEvent = useCallback((eventId: string) => {
+    return events[eventId]
+  }, [events])
 
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'threads', label: 'Threads' },
@@ -126,7 +137,7 @@ export function ProfilePage() {
           <p className="text-[11px] text-[#777]">Days</p>
         </div>
         <div className="bg-black p-3 text-center">
-          <p className="text-[18px] font-bold text-white">{lifePosts}</p>
+          <p className="text-[18px] font-bold text-white">{lifePostsCount}</p>
           <p className="text-[11px] text-[#777]">Life Posts</p>
         </div>
       </div>

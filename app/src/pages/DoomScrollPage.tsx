@@ -34,11 +34,17 @@ export function DoomScrollPage() {
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
   const [sortBy, setSortBy] = useState<SortOption>('hot')
 
-  // Get doom posts from store
-  const posts = usePostsStore((state) => state.getFeed('doom'))
+  // Get raw data from store (stable references)
+  const allPosts = usePostsStore((state) => state.posts)
+  const doomFeed = usePostsStore((state) => state.doomFeed)
   const likePost = usePostsStore((state) => state.likePost)
   const unlikePost = usePostsStore((state) => state.unlikePost)
   const userId = useUserStore((state) => state.userId)
+
+  // Compute feed from raw data
+  const posts = useMemo(() => {
+    return doomFeed.map((id) => allPosts[id]).filter(Boolean)
+  }, [allPosts, doomFeed])
 
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {

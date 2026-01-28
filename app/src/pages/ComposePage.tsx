@@ -12,7 +12,7 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { X, Image, Globe, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { usePostsStore, useUserStore } from '@/store'
 import type { PostVariant } from '@/types'
 
@@ -26,12 +26,18 @@ export function ComposePage() {
   const createPost = usePostsStore((state) => state.createPost)
   const author = useUserStore((state) => state.author)
   const doomBalance = useUserStore((state) => state.doomBalance)
-  const getLifePostCost = useUserStore((state) => state.getLifePostCost)
+  const lifePosts = useUserStore((state) => state.lifePosts)
+  const daysLiving = useUserStore((state) => state.daysLiving)
   const spendDoom = useUserStore((state) => state.spendDoom)
   const incrementLifePosts = useUserStore((state) => state.incrementLifePosts)
 
   const maxLength = 500
-  const lifePostCost = getLifePostCost()
+
+  // Compute life post cost
+  const lifePostCost = useMemo(() => {
+    return Math.max(1, daysLiving + 1) + Math.floor(lifePosts / 10)
+  }, [daysLiving, lifePosts])
+
   const canAffordLifePost = doomBalance >= lifePostCost
 
   /** Handle post submission */

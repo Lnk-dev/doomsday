@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Search, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { useEventsStore } from '@/store'
 import { formatCountdown, formatNumber } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { EventCategory } from '@/types'
 
@@ -43,15 +43,22 @@ export function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<EventCategory | 'all'>('all')
 
-  // Get events from store
-  const events = useEventsStore((state) => state.getEvents())
+  // Get raw events from store (stable reference)
+  const eventsRecord = useEventsStore((state) => state.events)
+
+  // Compute sorted events list
+  const events = useMemo(() => {
+    return Object.values(eventsRecord).sort((a, b) => a.countdownEnd - b.countdownEnd)
+  }, [eventsRecord])
 
   // Filter events
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = activeCategory === 'all' || event.category === activeCategory
-    return matchesSearch && matchesCategory
-  })
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesCategory = activeCategory === 'all' || event.category === activeCategory
+      return matchesSearch && matchesCategory
+    })
+  }, [events, searchQuery, activeCategory])
 
   return (
     <div className="flex flex-col min-h-full">

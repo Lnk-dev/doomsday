@@ -10,7 +10,7 @@
  */
 
 import { PageHeader } from '@/components/layout/PageHeader'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { TrendingUp, TrendingDown, ChevronRight } from 'lucide-react'
 import { useLeaderboardStore, useUserStore } from '@/store'
 import { formatNumber } from '@/lib/utils'
@@ -27,9 +27,14 @@ const tabs: { id: LeaderboardCategory; label: string; color: string }[] = [
 export function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<LeaderboardCategory>('doomer')
 
-  // Store hooks
-  const leaderboard = useLeaderboardStore((state) => state.getLeaderboard(activeTab))
+  // Store hooks - get raw data (stable reference)
+  const leaderboards = useLeaderboardStore((state) => state.leaderboards)
   const doomBalance = useUserStore((state) => state.doomBalance)
+
+  // Compute current leaderboard
+  const leaderboard = useMemo(() => {
+    return leaderboards[activeTab] || []
+  }, [leaderboards, activeTab])
 
   const activeColor = tabs.find((t) => t.id === activeTab)?.color || '#ff3040'
 

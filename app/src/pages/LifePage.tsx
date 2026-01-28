@@ -17,7 +17,7 @@ import { DonationModal } from '@/components/ui/DonationModal'
 import { Heart, Gift } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { Author } from '@/types'
 
 type ActivityTab = 'all' | 'follows' | 'replies' | 'mentions'
@@ -26,16 +26,27 @@ export function LifePage() {
   const [activeTab, setActiveTab] = useState<ActivityTab>('all')
   const [donationTarget, setDonationTarget] = useState<Author | null>(null)
 
-  // Store hooks
-  const posts = usePostsStore((state) => state.getFeed('life'))
+  // Store hooks - get raw data (stable references)
+  const allPosts = usePostsStore((state) => state.posts)
+  const lifeFeed = usePostsStore((state) => state.lifeFeed)
   const likePost = usePostsStore((state) => state.likePost)
   const unlikePost = usePostsStore((state) => state.unlikePost)
   const userId = useUserStore((state) => state.userId)
   const author = useUserStore((state) => state.author)
   const doomBalance = useUserStore((state) => state.doomBalance)
-  const getLifePostCost = useUserStore((state) => state.getLifePostCost)
+  const lifePosts = useUserStore((state) => state.lifePosts)
+  const daysLiving = useUserStore((state) => state.daysLiving)
 
-  const lifePostCost = getLifePostCost()
+  // Compute feed from raw data
+  const posts = useMemo(() => {
+    return lifeFeed.map((id) => allPosts[id]).filter(Boolean)
+  }, [allPosts, lifeFeed])
+
+  // Compute life post cost
+  const lifePostCost = useMemo(() => {
+    return Math.max(1, daysLiving + 1) + Math.floor(lifePosts / 10)
+  }, [daysLiving, lifePosts])
+
   const canAfford = doomBalance >= lifePostCost
 
   /** Handle like button click */

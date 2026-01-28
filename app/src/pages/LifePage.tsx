@@ -17,7 +17,7 @@ import { DonationModal } from '@/components/ui/DonationModal'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
 import { Heart, Gift } from 'lucide-react'
-import { usePostsStore, useUserStore } from '@/store'
+import { usePostsStore, useUserStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -46,6 +46,11 @@ export function LifePage() {
   const lifePosts = useUserStore((state) => state.lifePosts)
   const daysLiving = useUserStore((state) => state.daysLiving)
   const isHidden = useUserStore((state) => state.isHidden)
+
+  // Bookmarks store
+  const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
 
   // Compute feed from raw data (filtering out blocked/muted users)
   const posts = useMemo(() => {
@@ -92,6 +97,15 @@ export function LifePage() {
   const handleQuoteRepost = (content: string) => {
     if (quotePost) {
       quoteRepost(quotePost.id, userId, author, content)
+    }
+  }
+
+  /** Handle bookmark toggle */
+  const handleBookmark = (postId: string) => {
+    if (isBookmarked(postId)) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
     }
   }
 
@@ -176,6 +190,8 @@ export function LifePage() {
                 onShare={() => setSharePost(post)}
                 onRepost={() => handleRepost(post)}
                 onQuoteRepost={() => setQuotePost(post)}
+                isBookmarked={isBookmarked(post.id)}
+                onBookmark={() => handleBookmark(post.id)}
               />
               {/* Donate button (only for other users' posts) */}
               {!isOwnPost && (

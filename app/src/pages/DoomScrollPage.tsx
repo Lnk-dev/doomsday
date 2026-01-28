@@ -17,7 +17,7 @@ import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { FeedSkeleton } from '@/components/ui/Skeleton'
 import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
-import { usePostsStore, useUserStore, useLoadingStore } from '@/store'
+import { usePostsStore, useUserStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -71,6 +71,11 @@ export function DoomScrollPage() {
   const author = useUserStore((state) => state.author)
   const following = useUserStore((state) => state.following)
   const isHidden = useUserStore((state) => state.isHidden)
+
+  // Bookmarks store
+  const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
 
   // Compute feed from raw data
   const posts = useMemo(() => {
@@ -126,6 +131,15 @@ export function DoomScrollPage() {
   const handleQuoteRepost = (content: string) => {
     if (quotePost) {
       quoteRepost(quotePost.id, userId, author, content)
+    }
+  }
+
+  /** Handle bookmark toggle */
+  const handleBookmark = (postId: string) => {
+    if (isBookmarked(postId)) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
     }
   }
 
@@ -214,6 +228,10 @@ export function DoomScrollPage() {
               onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
               onClick={() => navigate(`/post/${post.id}`)}
               onShare={() => setSharePost(post)}
+              onRepost={() => handleRepost(post)}
+              onQuoteRepost={() => setQuotePost(post)}
+              isBookmarked={isBookmarked(post.id)}
+              onBookmark={() => handleBookmark(post.id)}
             />
           ))}
         </div>

@@ -10,9 +10,9 @@
  */
 
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCheck } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCheck, Bookmark } from 'lucide-react'
 import { ShareModal } from '@/components/ui/ShareModal'
-import { usePostsStore, useUserStore, useCommentsStore } from '@/store'
+import { usePostsStore, useUserStore, useCommentsStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo, useEffect } from 'react'
 
@@ -29,6 +29,12 @@ export function PostDetailPage() {
   const following = useUserStore((state) => state.following)
   const followUser = useUserStore((state) => state.followUser)
   const unfollowUser = useUserStore((state) => state.unfollowUser)
+
+  // Bookmarks store
+  const isBookmarkedFn = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
+  const isBookmarked = postId ? isBookmarkedFn(postId) : false
 
   // Comments store hooks
   const commentsData = useCommentsStore((state) => state.commentsByPost[postId || ''] || [])
@@ -85,6 +91,15 @@ export function PostDetailPage() {
       unlikePost(post.id, userId)
     } else {
       likePost(post.id, userId)
+    }
+  }
+
+  const handleBookmark = () => {
+    if (!postId) return
+    if (isBookmarked) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
     }
   }
 
@@ -193,6 +208,14 @@ export function PostDetailPage() {
             className="p-2 rounded-full text-[#777] hover:text-white transition-colors"
           >
             <Share size={22} />
+          </button>
+          <button
+            onClick={handleBookmark}
+            className={`p-2 rounded-full transition-colors ${
+              isBookmarked ? 'text-[#1d9bf0]' : 'text-[#777] hover:text-[#1d9bf0]'
+            }`}
+          >
+            <Bookmark size={22} fill={isBookmarked ? '#1d9bf0' : 'none'} />
           </button>
         </div>
       </div>

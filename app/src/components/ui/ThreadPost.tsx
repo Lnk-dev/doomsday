@@ -1,5 +1,6 @@
 /**
  * ThreadPost Component
+ * Issue #51: Add bookmark/save posts feature
  *
  * A Threads-style post card used throughout the app for displaying
  * doom scroll posts, life posts, and user activity.
@@ -7,13 +8,13 @@
  * Features:
  * - Avatar column with optional thread line for replies
  * - Verified badge support
- * - Interactive action buttons (like, comment, repost, share)
+ * - Interactive action buttons (like, comment, repost, share, bookmark)
  * - Variant styling for doom (red) and life (green) posts
  * - Repost attribution and quote repost support
  */
 
 import { useState, useRef, useEffect } from 'react'
-import { Heart, MessageCircle, Repeat2, Send, MoreHorizontal } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal } from 'lucide-react'
 
 interface ThreadPostProps {
   /** Post ID for navigation */
@@ -70,6 +71,10 @@ interface ThreadPostProps {
   onRepost?: () => void
   /** Callback when quote repost is selected */
   onQuoteRepost?: () => void
+  /** Is the post bookmarked by current user */
+  isBookmarked?: boolean
+  /** Callback when bookmark button is clicked */
+  onBookmark?: () => void
 }
 
 export function ThreadPost({
@@ -92,6 +97,8 @@ export function ThreadPost({
   onShare,
   onRepost,
   onQuoteRepost,
+  isBookmarked = false,
+  onBookmark,
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
@@ -291,6 +298,20 @@ export function ThreadPost({
             <Send
               size={20}
               className="text-[#777] group-hover:text-white transition-colors"
+            />
+          </button>
+          {/* Bookmark button */}
+          <button
+            onClick={onBookmark}
+            className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+          >
+            <Bookmark
+              size={20}
+              className={`transition-colors ${
+                isBookmarked
+                  ? 'text-[#1d9bf0] fill-[#1d9bf0]'
+                  : 'text-[#777] group-hover:text-white'
+              }`}
             />
           </button>
         </div>

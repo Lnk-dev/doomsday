@@ -1,11 +1,13 @@
 /**
  * ProfilePage
+ * Issue #51: Add bookmark/save posts feature
  *
  * User profile displaying stats, balances, and post history.
  * Features:
  * - Token balances ($DOOM, $LIFE)
  * - Days living counter
  * - User's posts
+ * - Saved/bookmarked posts
  * - Wallet connection CTA
  */
 
@@ -13,13 +15,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
 import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
-import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
-import { useUserStore, usePostsStore, useEventsStore } from '@/store'
+import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight, Bookmark } from 'lucide-react'
+import { useUserStore, usePostsStore, useEventsStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-type ProfileTab = 'threads' | 'bets' | 'replies'
+type ProfileTab = 'threads' | 'bets' | 'replies' | 'saved'
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -43,6 +45,13 @@ export function ProfilePage() {
   const bets = useEventsStore((state) => state.bets)
   const events = useEventsStore((state) => state.events)
 
+  // Bookmarks store
+  const bookmarks = useBookmarksStore((state) => state.bookmarks)
+  const bookmarkOrder = useBookmarksStore((state) => state.bookmarkOrder)
+  const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
+
   // Compute user's posts
   const userPosts = useMemo(() => {
     return Object.values(allPosts)
@@ -60,10 +69,33 @@ export function ProfilePage() {
     return events[eventId]
   }, [events])
 
+  // Compute bookmarked posts
+  const bookmarkedPosts = useMemo(() => {
+    return bookmarkOrder
+      .map((bookmarkId) => {
+        const bookmark = bookmarks[bookmarkId]
+        if (!bookmark) return null
+        const post = allPosts[bookmark.postId]
+        if (!post) return null
+        return { ...post, bookmark }
+      })
+      .filter(Boolean) as (typeof allPosts[string] & { bookmark: typeof bookmarks[string] })[]
+  }, [bookmarks, bookmarkOrder, allPosts])
+
+  // Bookmark toggle handler
+  const handleBookmarkToggle = useCallback((postId: string) => {
+    if (isBookmarked(postId)) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
+    }
+  }, [isBookmarked, addBookmark, removeBookmark, userId])
+
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'threads', label: 'Threads' },
     { id: 'bets', label: `Bets (${userBets.length})` },
     { id: 'replies', label: 'Replies' },
+    { id: 'saved', label: `Saved (${bookmarkedPosts.length})` },
   ]
 
   return (
@@ -207,7 +239,9 @@ export function ProfilePage() {
                 replies={post.replies}
                 variant={post.variant}
                 isLiked={post.likedBy.includes(userId)}
+                isBookmarked={isBookmarked(post.id)}
                 onClick={() => navigate(`/post/${post.id}`)}
+                onBookmark={() => handleBookmarkToggle(post.id)}
               />
             ))}
           </div>
@@ -323,6 +357,47 @@ export function ProfilePage() {
             No replies yet.
           </p>
         </div>
+      )}
+
+      {activeTab === 'saved' && (
+        bookmarkedPosts.length > 0 ? (
+          <div className="divide-y divide-[#333]">
+            {bookmarkedPosts.map((post) => (
+              <div key={post.id}>
+                {/* Optional: Show bookmark note */}
+                {post.bookmark?.note && (
+                  <div className="px-4 pt-2 text-[12px] text-[#777] flex items-center gap-1">
+                    <Bookmark size={12} />
+                    <span>{post.bookmark.note}</span>
+                  </div>
+                )}
+                <ThreadPost
+                  postId={post.id}
+                  author={post.author}
+                  content={post.content}
+                  timestamp={formatRelativeTime(post.createdAt)}
+                  likes={post.likes}
+                  replies={post.replies}
+                  variant={post.variant}
+                  isLiked={post.likedBy.includes(userId)}
+                  isBookmarked={true}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  onBookmark={() => handleBookmarkToggle(post.id)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
+            <Bookmark size={48} className="text-[#333] mb-4" />
+            <p className="text-[15px] text-[#777] text-center">
+              No saved posts yet.
+            </p>
+            <p className="text-[13px] text-[#555] text-center mt-1">
+              Bookmark posts to save them for later.
+            </p>
+          </div>
+        )
       )}
 
       {/* Profile share modal */}

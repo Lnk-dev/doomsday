@@ -11,6 +11,7 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
+import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
 import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles } from 'lucide-react'
 import { useUserStore, usePostsStore, useEventsStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
@@ -22,6 +23,7 @@ type ProfileTab = 'threads' | 'bets' | 'replies'
 export function ProfilePage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
+  const [showShareModal, setShowShareModal] = useState(false)
 
   // User store
   const author = useUserStore((state) => state.author)
@@ -98,7 +100,10 @@ export function ProfilePage() {
           <button className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors">
             Edit profile
           </button>
-          <button className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
+          >
             Share profile
           </button>
         </div>
@@ -290,6 +295,20 @@ export function ProfilePage() {
             No replies yet.
           </p>
         </div>
+      )}
+
+      {/* Profile share modal */}
+      {showShareModal && (
+        <ProfileShareModal
+          profile={author}
+          stats={{
+            doomBalance,
+            lifeBalance,
+            daysLiving,
+            postsCount: userPosts.length,
+          }}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   )

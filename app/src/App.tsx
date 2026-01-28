@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { WalletProvider } from '@/providers/WalletProvider'
 import { Loader2 } from 'lucide-react'
 import './index.css'
 
@@ -16,6 +17,8 @@ const CreateEventPage = lazy(() => import('@/pages/CreateEventPage').then(m => (
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ default: m.PostDetailPage })))
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
+const TrendingPage = lazy(() => import('@/pages/TrendingPage').then(m => ({ default: m.TrendingPage })))
+const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -28,8 +31,9 @@ function PageLoader() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <WalletProvider>
+      <BrowserRouter>
+        <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={
             <Suspense fallback={<PageLoader />}>
@@ -91,9 +95,20 @@ function App() {
               <LifeTimelinePage />
             </Suspense>
           } />
+          <Route path="/trending" element={
+            <Suspense fallback={<PageLoader />}>
+              <TrendingPage />
+            </Suspense>
+          } />
+          <Route path="/discover" element={
+            <Suspense fallback={<PageLoader />}>
+              <DiscoverPage />
+            </Suspense>
+          } />
         </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </WalletProvider>
   )
 }
 

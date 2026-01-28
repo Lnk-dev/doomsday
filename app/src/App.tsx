@@ -30,8 +30,7 @@ const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.H
 const NotificationSettingsPage = lazy(() => import('@/pages/NotificationSettingsPage').then(m => ({ default: m.NotificationSettingsPage })))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
 const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
-const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
-const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
+const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -168,14 +167,19 @@ function App() {
               <ResponsibleGamblingPage />
             </Suspense>
           } />
+          <Route path="/hashtag/:tag" element={
+            <Suspense fallback={<PageLoader />}>
+              <HashtagPage />
+            </Suspense>
+          } />
           <Route path="/status" element={
             <Suspense fallback={<PageLoader />}>
               <StatusPage />
             </Suspense>
           } />
-          <Route path="/creator" element={
+          <Route path="/subscription" element={
             <Suspense fallback={<PageLoader />}>
-              <CreatorDashboardPage />
+              <SubscriptionPage />
             </Suspense>
           } />
           <Route path="*" element={

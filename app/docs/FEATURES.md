@@ -189,6 +189,96 @@ Fixed bottom navigation with 5 tabs.
 - Clears when tab is visited
 - Persists across sessions
 
+## Token Economics
+
+The Doomsday economy runs on two tokens with opposing purposes.
+
+### $DOOM Token
+
+The currency of pessimism and engagement.
+
+**Earning $DOOM:**
+- Post doom content (free to post, earns engagement rewards)
+- Win doom-side bets in prediction market
+- Receive from other users
+
+**Spending $DOOM:**
+- Post life content (escalating cost)
+- Place bets on predictions
+- Future: Premium features
+
+**Properties:**
+- Inflationary by design (doom is abundant)
+- Low barrier to earn
+- Primary utility is unlocking life posts
+
+### $LIFE Token
+
+The scarce currency of hope and resilience.
+
+**Earning $LIFE:**
+- Post life content (costs $DOOM, rewards $LIFE)
+- Win life-side bets in prediction market
+- Receive donations from other users
+- Survival bonuses (daily streak rewards)
+
+**Spending $LIFE:**
+- Donate to other users
+- Future: Exclusive features, NFT mints
+
+**Properties:**
+- Deflationary pressure (harder to earn over time)
+- Represents commitment to "living despite the doom"
+- Social status indicator
+
+### Life Post Cost Formula
+
+The cost to post life content increases over time:
+
+```
+cost = baseCost + daysLiving + floor(lifePosts / 10)
+
+Where:
+- baseCost = 1 $DOOM
+- daysLiving = days since first life post
+- lifePosts = total life posts made
+```
+
+**Example progression:**
+| Day | Life Posts | Cost |
+|-----|------------|------|
+| 1   | 0          | 2 $DOOM |
+| 7   | 5          | 8 $DOOM |
+| 30  | 20         | 33 $DOOM |
+| 100 | 50         | 106 $DOOM |
+
+### Prediction Market Economics
+
+**Placing Bets:**
+- Minimum bet: 10 tokens
+- Choose $DOOM (doom happens) or $LIFE (life prevails)
+- Tokens locked until event resolves
+
+**Payout Calculation:**
+```
+yourPayout = (yourStake / winningSideTotal) * totalPool
+```
+
+**Example:**
+- Total pool: 10,000 tokens
+- Doom side: 7,000 tokens
+- Life side: 3,000 tokens
+- Your bet: 1,000 on Life
+- If Life wins: (1000 / 3000) * 10000 = 3,333 tokens
+
+### Token Display
+
+Balances shown in:
+- Profile header
+- Compose page (before posting)
+- Betting interface
+- Leaderboards
+
 ## Notifications
 
 Visual indicators for new content.

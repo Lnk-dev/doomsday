@@ -16,8 +16,9 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { FeedSkeleton } from '@/components/ui/Skeleton'
-import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
-import { usePostsStore, useUserStore, useBookmarksStore } from '@/store'
+import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
+import { Flame, Clock, TrendingUp, UserPlus, Search } from 'lucide-react'
+import { usePostsStore, useUserStore, useBookmarksStore, useLoadingStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -40,15 +41,6 @@ export function DoomScrollPage() {
   const [sortBy, setSortBy] = useState<SortOption>('hot')
   const [sharePost, setSharePost] = useState<Post | null>(null)
   const [quotePost, setQuotePost] = useState<Post | null>(null)
-
-  // Loading state
-  const isLoading = useLoadingStore((state) => state.isLoading('posts'))
-  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
-
-  // Simulate initial loading on mount
-  useEffect(() => {
-    simulateLoading('posts', 1000)
-  }, [simulateLoading])
 
   // Loading state
   const isLoading = useLoadingStore((state) => state.isLoading('posts'))

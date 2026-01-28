@@ -15,7 +15,6 @@ import { X, Heart, Sparkles, AlertCircle } from 'lucide-react'
 import { useUserStore } from '@/store'
 import { formatNumber } from '@/lib/utils'
 import { minValue, maxValue, validateField } from '@/lib/validation'
-import { FormField } from '@/components/ui/FormField'
 import type { Author } from '@/types'
 
 interface DonationModalProps {
@@ -59,13 +58,6 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
 
   const amountError = touched ? validation.error : undefined
   const isValid = validation.isValid && donationAmount > 0 && cost <= doomBalance
-
-  /** Handle amount change */
-  const handleAmountChange = useCallback((value: string) => {
-    // Only allow positive integers
-    const sanitized = value.replace(/[^0-9]/g, '')
-    setAmount(sanitized)
-  }, [])
 
   /** Handle quick amount selection */
   const handleQuickAmount = useCallback((val: number) => {

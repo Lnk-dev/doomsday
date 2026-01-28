@@ -23,11 +23,11 @@ import { useMemo, useEffect, useState, useRef } from 'react'
 
 /** Navigation items configuration with accessibility labels */
 const navItems = [
-  { to: '/', icon: Home, notifyKey: 'doom' as const },
-  { to: '/discover', icon: Compass, notifyKey: 'discover' as const },
-  { to: '/compose', icon: PenSquare, notifyKey: null },
-  { to: '/life', icon: Heart, notifyKey: 'life' as const },
-  { to: '/profile', icon: User, notifyKey: null },
+  { to: '/', icon: Home, notifyKey: 'doom' as const, label: 'Home' },
+  { to: '/discover', icon: Compass, notifyKey: 'discover' as const, label: 'Discover' },
+  { to: '/compose', icon: PenSquare, notifyKey: null, label: 'Compose' },
+  { to: '/life', icon: Heart, notifyKey: 'life' as const, label: 'Life' },
+  { to: '/profile', icon: User, notifyKey: null, label: 'Profile' },
 ]
 
 export function BottomNav() {

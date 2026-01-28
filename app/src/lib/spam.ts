@@ -287,7 +287,7 @@ export function containsProhibitedContent(content: string): boolean {
  * @param timestamps - Array of recent post timestamps (in ms)
  * @returns true if rapid posting is detected
  */
-export function isRapidPosting(userId: string, timestamps: number[]): boolean {
+export function isRapidPosting(_userId: string, timestamps: number[]): boolean {
   if (!timestamps || timestamps.length === 0) {
     return false
   }

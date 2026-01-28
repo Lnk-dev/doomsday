@@ -21,13 +21,13 @@ import { Home, Search, PenSquare, Heart, User } from 'lucide-react'
 import { usePostsStore, useEventsStore } from '@/store'
 import { useMemo, useEffect, useState, useRef } from 'react'
 
-/** Navigation items configuration */
+/** Navigation items configuration with accessibility labels */
 const navItems = [
-  { to: '/', icon: Home, notifyKey: 'doom' as const },
-  { to: '/events', icon: Search, notifyKey: 'events' as const },
-  { to: '/compose', icon: PenSquare, notifyKey: null },
-  { to: '/life', icon: Heart, notifyKey: 'life' as const },
-  { to: '/profile', icon: User, notifyKey: null },
+  { to: '/', icon: Home, notifyKey: 'doom' as const, label: 'Home feed' },
+  { to: '/events', icon: Search, notifyKey: 'events' as const, label: 'Search events' },
+  { to: '/compose', icon: PenSquare, notifyKey: null, label: 'Create new post' },
+  { to: '/life', icon: Heart, notifyKey: 'life' as const, label: 'Life feed' },
+  { to: '/profile', icon: User, notifyKey: null, label: 'Your profile' },
 ]
 
 export function BottomNav() {
@@ -95,29 +95,42 @@ export function BottomNav() {
   }, [location.pathname])
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50">
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50"
+      role="navigation"
+      aria-label="Main navigation"
+    >
       <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
-        {navItems.map(({ to, icon: Icon, notifyKey }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `relative flex items-center justify-center w-12 h-12 transition-colors ${
-                isActive ? 'text-white' : 'text-[#777]'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={26} strokeWidth={isActive ? 2.5 : 1.5} />
-                {/* Notification dot */}
-                {notifyKey && hasNewContent[notifyKey] && !isActive && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff3040]" />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
+        {navItems.map(({ to, icon: Icon, notifyKey, label }) => {
+          const isCurrentPage = location.pathname === to
+          const hasNew = notifyKey && hasNewContent[notifyKey] && !isCurrentPage
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              aria-label={hasNew ? `${label} (new content available)` : label}
+              aria-current={isCurrentPage ? 'page' : undefined}
+              className={({ isActive }) =>
+                `relative flex items-center justify-center w-12 h-12 transition-colors ${
+                  isActive ? 'text-white' : 'text-[#777]'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={26} strokeWidth={isActive ? 2.5 : 1.5} aria-hidden="true" />
+                  {/* Notification dot */}
+                  {notifyKey && hasNewContent[notifyKey] && !isActive && (
+                    <span
+                      className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff3040]"
+                      aria-hidden="true"
+                    />
+                  )}
+                </>
+              )}
+            </NavLink>
+          )
+        })}
       </div>
     </nav>
   )

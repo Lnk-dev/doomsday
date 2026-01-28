@@ -137,7 +137,11 @@ export function ThreadPost({
           style={variant !== 'default' ? { border: `2px solid ${accentColor}` } : {}}
         >
           {author.avatar && (
-            <img src={author.avatar} alt="" className="w-full h-full object-cover" />
+            <img
+              src={author.avatar}
+              alt={`${author.username}'s avatar`}
+              className="w-full h-full object-cover"
+            />
           )}
         </div>
         {/* Thread line for connected replies */}
@@ -156,15 +160,24 @@ export function ThreadPost({
             </span>
             {/* Verified badge (Twitter/Threads style) */}
             {author.verified && (
-              <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+              <svg
+                className="w-4 h-4 text-blue-500"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-label="Verified account"
+                role="img"
+              >
                 <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
               </svg>
             )}
           </div>
           <div className="flex items-center gap-2">
             <span className="text-[#777] text-[15px]">{timestamp}</span>
-            <button className="p-1 -mr-1 text-[#777] hover:text-white">
-              <MoreHorizontal size={20} />
+            <button
+              className="p-1 -mr-1 text-[#777] hover:text-white"
+              aria-label="More options"
+            >
+              <MoreHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -218,14 +231,17 @@ export function ThreadPost({
         )}
 
         {/* Action buttons row */}
-        <div className="flex items-center gap-1 mt-3 -ml-2">
+        <div className="flex items-center gap-1 mt-3 -ml-2" role="group" aria-label="Post actions">
           {/* Like button */}
           <button
             onClick={onLike}
             className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+            aria-label={isLiked ? 'Unlike this post' : 'Like this post'}
+            aria-pressed={isLiked}
           >
             <Heart
               size={20}
+              aria-hidden="true"
               className={`transition-colors ${
                 isLiked
                   ? 'text-[#ff3040] fill-[#ff3040]'
@@ -234,62 +250,36 @@ export function ThreadPost({
             />
           </button>
           {/* Comment button */}
-          <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
+          <button
+            className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+            aria-label="Reply to this post"
+          >
             <MessageCircle
               size={20}
+              aria-hidden="true"
               className="text-[#777] group-hover:text-white transition-colors"
             />
           </button>
-          {/* Repost button with dropdown */}
-          <div className="relative" ref={repostMenuRef}>
-            <button
-              onClick={() => setShowRepostMenu(!showRepostMenu)}
-              className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
-            >
-              <Repeat2
-                size={20}
-                className={`transition-colors ${
-                  isReposted
-                    ? 'text-[#00ba7c]'
-                    : 'text-[#777] group-hover:text-white'
-                }`}
-              />
-            </button>
-            {/* Repost dropdown menu */}
-            {showRepostMenu && (
-              <div className="absolute left-0 top-full mt-1 bg-[#262626] rounded-xl shadow-lg border border-[#333] py-1 min-w-[160px] z-10">
-                <button
-                  onClick={() => {
-                    onRepost?.()
-                    setShowRepostMenu(false)
-                  }}
-                  className="w-full px-4 py-2.5 text-left text-[15px] text-white hover:bg-[#333] flex items-center gap-3"
-                >
-                  <Repeat2 size={18} />
-                  {isReposted ? 'Undo repost' : 'Repost'}
-                </button>
-                {!isReposted && (
-                  <button
-                    onClick={() => {
-                      onQuoteRepost?.()
-                      setShowRepostMenu(false)
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-[15px] text-white hover:bg-[#333] flex items-center gap-3"
-                  >
-                    <MessageCircle size={18} />
-                    Quote
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Repost button */}
+          <button
+            className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+            aria-label="Repost"
+          >
+            <Repeat2
+              size={20}
+              aria-hidden="true"
+              className="text-[#777] group-hover:text-white transition-colors"
+            />
+          </button>
           {/* Share button */}
           <button
             onClick={onShare}
             className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+            aria-label="Share this post"
           >
             <Send
               size={20}
+              aria-hidden="true"
               className="text-[#777] group-hover:text-white transition-colors"
             />
           </button>

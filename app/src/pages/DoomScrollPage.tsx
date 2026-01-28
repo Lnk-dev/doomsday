@@ -50,6 +50,15 @@ export function DoomScrollPage() {
     simulateLoading('posts', 1000)
   }, [simulateLoading])
 
+  // Loading state
+  const isLoading = useLoadingStore((state) => state.isLoading('posts'))
+  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
+
+  // Simulate initial loading on mount
+  useEffect(() => {
+    simulateLoading('posts', 1000)
+  }, [simulateLoading])
+
   // Get raw data from store (stable references)
   const allPosts = usePostsStore((state) => state.posts)
   const doomFeed = usePostsStore((state) => state.doomFeed)

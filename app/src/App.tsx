@@ -25,6 +25,7 @@ const NotFoundPage = lazy(() => import('@/components/error/NotFound').then(m => 
 const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default: m.SearchPage })))
 const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m.TermsPage })))
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })))
+const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -48,6 +49,12 @@ function App() {
       <BrowserRouter>
         <RouteErrorBoundary>
         <Routes>
+          {/* Landing page outside AppLayout */}
+          <Route path="/welcome" element={
+            <Suspense fallback={<PageLoader />}>
+              <LandingPage />
+            </Suspense>
+          } />
         <Route element={<AppLayout />}>
           <Route path="/" element={
             <Suspense fallback={<PageLoader />}>

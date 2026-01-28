@@ -6,3 +6,4 @@
 
 export { usePostsStore } from './posts'
 export { useUserStore } from './user'
+export { useEventsStore } from './events'

@@ -29,6 +29,7 @@ const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ defaul
 const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })))
 const NotificationSettingsPage = lazy(() => import('@/pages/NotificationSettingsPage').then(m => ({ default: m.NotificationSettingsPage })))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
+const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -158,6 +159,11 @@ function App() {
           <Route path="/settings/notifications" element={
             <Suspense fallback={<PageLoader />}>
               <NotificationSettingsPage />
+            </Suspense>
+          } />
+          <Route path="/settings/gambling" element={
+            <Suspense fallback={<PageLoader />}>
+              <ResponsibleGamblingPage />
             </Suspense>
           } />
           <Route path="*" element={

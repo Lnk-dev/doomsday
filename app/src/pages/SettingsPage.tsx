@@ -282,6 +282,12 @@ export function SettingsPage() {
             description="Get help with Doomsday"
             onClick={() => navigate('/help')}
           />
+          <SettingItem
+            icon={<Shield size={20} />}
+            label="Responsible Gambling"
+            description="Betting limits, self-exclusion, resources"
+            onClick={() => navigate('/settings/gambling')}
+          />
         </div>
       </div>
 

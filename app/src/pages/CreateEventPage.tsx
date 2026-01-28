@@ -3,16 +3,19 @@
  *
  * Form for creating new prediction events.
  * Features:
- * - Event title and description input
+ * - Event title and description input with validation
  * - Category selection
  * - Countdown date picker
+ * - Form validation with error messaging
  * - Preview before submission
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Calendar, AlertTriangle, Check } from 'lucide-react'
+import { ArrowLeft, Calendar, AlertTriangle, Check, AlertCircle } from 'lucide-react'
 import { useEventsStore } from '@/store'
+import { FormField } from '@/components/ui/FormField'
+import { required, minLength, maxLength, validateField } from '@/lib/validation'
 import type { EventCategory } from '@/types'
 
 /** Available categories with labels and colors */
@@ -36,6 +39,26 @@ const countdownPresets = [
   { label: '5 years', days: 1825 },
 ]
 
+/** Validation constants */
+const TITLE_MIN_LENGTH = 5
+const TITLE_MAX_LENGTH = 100
+const DESCRIPTION_MIN_LENGTH = 20
+const DESCRIPTION_MAX_LENGTH = 500
+
+/** Title validation rules */
+const titleRules = [
+  required('Title is required'),
+  minLength(TITLE_MIN_LENGTH, `Title must be at least ${TITLE_MIN_LENGTH} characters`),
+  maxLength(TITLE_MAX_LENGTH, `Title cannot exceed ${TITLE_MAX_LENGTH} characters`),
+]
+
+/** Description validation rules */
+const descriptionRules = [
+  required('Description is required'),
+  minLength(DESCRIPTION_MIN_LENGTH, `Description must be at least ${DESCRIPTION_MIN_LENGTH} characters`),
+  maxLength(DESCRIPTION_MAX_LENGTH, `Description cannot exceed ${DESCRIPTION_MAX_LENGTH} characters`),
+]
+
 export function CreateEventPage() {
   const navigate = useNavigate()
   const createEvent = useEventsStore((state) => state.createEvent)
@@ -50,11 +73,36 @@ export function CreateEventPage() {
   const [daysUntilEnd, setDaysUntilEnd] = useState(30)
   const [showSuccess, setShowSuccess] = useState(false)
 
-  /** Validate form */
-  const isValid = title.trim().length >= 5 && description.trim().length >= 20
+  // Touched state for validation display
+  const [titleTouched, setTitleTouched] = useState(false)
+  const [descriptionTouched, setDescriptionTouched] = useState(false)
+
+  // Validation results
+  const titleValidation = useMemo(() => validateField(title, titleRules), [title])
+  const descriptionValidation = useMemo(() => validateField(description, descriptionRules), [description])
+
+  const titleError = titleTouched ? titleValidation.error : undefined
+  const descriptionError = descriptionTouched ? descriptionValidation.error : undefined
+
+  /** Check if form is valid */
+  const isValid = titleValidation.isValid && descriptionValidation.isValid
+
+  /** Handle title change */
+  const handleTitleChange = useCallback((value: string) => {
+    setTitle(value.slice(0, TITLE_MAX_LENGTH))
+  }, [])
+
+  /** Handle description change */
+  const handleDescriptionChange = useCallback((value: string) => {
+    setDescription(value.slice(0, DESCRIPTION_MAX_LENGTH))
+  }, [])
 
   /** Handle form submission */
   const handleSubmit = () => {
+    // Mark all fields as touched to show validation errors
+    setTitleTouched(true)
+    setDescriptionTouched(true)
+
     if (!isValid) return
 
     const event = createEvent(title.trim(), description.trim(), category, daysUntilEnd)
@@ -108,37 +156,83 @@ export function CreateEventPage() {
         <div className="flex-1 overflow-y-auto">
           {/* Title input */}
           <div className="p-4 border-b border-[#333]">
-            <label className="text-[13px] text-[#777] mb-2 block">Event Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What doom scenario are you predicting?"
-              maxLength={100}
-              className="w-full bg-transparent text-[17px] text-white placeholder-[#555] outline-none"
-            />
+            <FormField
+              id="event-title"
+              label="Event Title"
+              error={titleError}
+              touched={titleTouched}
+              required
+            >
+              <input
+                id="event-title"
+                type="text"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                onBlur={() => setTitleTouched(true)}
+                placeholder="What doom scenario are you predicting?"
+                className={`w-full bg-transparent text-[17px] text-white placeholder-[#555] outline-none ${
+                  titleError ? 'border-l-2 border-[#ff3040] pl-2' : ''
+                }`}
+              />
+            </FormField>
             <div className="flex justify-between mt-2">
-              <span className="text-[12px] text-[#555]">Min 5 characters</span>
-              <span className="text-[12px] text-[#555]">{title.length}/100</span>
+              <span className={`text-[12px] ${titleError ? 'text-[#ff3040]' : 'text-[#555]'}`}>
+                Min {TITLE_MIN_LENGTH} characters
+              </span>
+              <span className={`text-[12px] ${
+                title.length > TITLE_MAX_LENGTH - 20 ? 'text-[#ff3040]' : 'text-[#555]'
+              }`}>
+                {title.length}/{TITLE_MAX_LENGTH}
+              </span>
             </div>
           </div>
 
           {/* Description input */}
           <div className="p-4 border-b border-[#333]">
-            <label className="text-[13px] text-[#777] mb-2 block">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the scenario in detail. What conditions need to be met for this prediction to be considered 'occurred'?"
-              maxLength={500}
-              rows={4}
-              className="w-full bg-transparent text-[15px] text-white placeholder-[#555] outline-none resize-none"
-            />
+            <FormField
+              id="event-description"
+              label="Description"
+              error={descriptionError}
+              touched={descriptionTouched}
+              required
+            >
+              <textarea
+                id="event-description"
+                value={description}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
+                onBlur={() => setDescriptionTouched(true)}
+                placeholder="Describe the scenario in detail. What conditions need to be met for this prediction to be considered 'occurred'?"
+                rows={4}
+                className={`w-full bg-transparent text-[15px] text-white placeholder-[#555] outline-none resize-none ${
+                  descriptionError ? 'border-l-2 border-[#ff3040] pl-2' : ''
+                }`}
+              />
+            </FormField>
             <div className="flex justify-between mt-2">
-              <span className="text-[12px] text-[#555]">Min 20 characters</span>
-              <span className="text-[12px] text-[#555]">{description.length}/500</span>
+              <span className={`text-[12px] ${descriptionError ? 'text-[#ff3040]' : 'text-[#555]'}`}>
+                Min {DESCRIPTION_MIN_LENGTH} characters
+              </span>
+              <span className={`text-[12px] ${
+                description.length > DESCRIPTION_MAX_LENGTH - 50 ? 'text-[#ff3040]' : 'text-[#555]'
+              }`}>
+                {description.length}/{DESCRIPTION_MAX_LENGTH}
+              </span>
             </div>
           </div>
+
+          {/* Validation summary when there are errors */}
+          {(titleError || descriptionError) && (
+            <div className="mx-4 mt-4 p-3 rounded-lg bg-[#1f0a0a] border border-[#ff3040]/30">
+              <div className="flex items-center gap-2 text-[#ff3040] mb-2">
+                <AlertCircle size={16} />
+                <span className="text-[13px] font-semibold">Please fix the following:</span>
+              </div>
+              <ul className="text-[12px] text-[#ff3040] space-y-1 pl-6">
+                {titleError && <li>{titleError}</li>}
+                {descriptionError && <li>{descriptionError}</li>}
+              </ul>
+            </div>
+          )}
 
           {/* Category selector */}
           <div className="p-4 border-b border-[#333]">
@@ -224,10 +318,10 @@ export function CreateEventPage() {
             <div className="bg-[#0a0a0a] rounded-xl p-4 border border-[#222]">
               <h4 className="text-[13px] font-semibold text-white mb-2">How predictions work</h4>
               <ul className="text-[12px] text-[#777] space-y-1">
-                <li>• Once created, others can bet DOOM or LIFE on your prediction</li>
-                <li>• DOOM bettors think the event will happen before the countdown</li>
-                <li>• LIFE bettors think it won't happen</li>
-                <li>• When the countdown ends, winners split the losers' stakes</li>
+                <li>- Once created, others can bet DOOM or LIFE on your prediction</li>
+                <li>- DOOM bettors think the event will happen before the countdown</li>
+                <li>- LIFE bettors think it won't happen</li>
+                <li>- When the countdown ends, winners split the losers' stakes</li>
               </ul>
             </div>
           </div>

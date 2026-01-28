@@ -6,6 +6,33 @@
  */
 
 import DOMPurify from 'dompurify'
+import { INPUT_LIMITS } from './validation'
+
+/**
+ * Dangerous URL protocols that should be blocked
+ */
+const DANGEROUS_PROTOCOLS = [
+  'javascript:',
+  'vbscript:',
+  'data:',
+  'file:',
+  'about:',
+  'blob:',
+]
+
+/**
+ * Patterns that indicate dangerous content
+ */
+const DANGEROUS_PATTERNS = [
+  /<\s*script/i,
+  /<\s*iframe/i,
+  /<\s*object/i,
+  /<\s*embed/i,
+  /javascript\s*:/i,
+  /vbscript\s*:/i,
+  /on\w+\s*=/i,
+  /data\s*:[^,]*;base64/i,
+]
 
 /**
  * Sanitize user-generated text content.
@@ -64,7 +91,7 @@ export function sanitizeUsername(input: string): string {
   return input
     .toLowerCase()
     .replace(/[^a-z0-9_]/g, '')
-    .slice(0, 30)
+    .slice(0, INPUT_LIMITS.USERNAME_MAX)
 }
 
 /**
@@ -77,4 +104,160 @@ export function isValidUrl(input: string): boolean {
   } catch {
     return false
   }
+}
+
+// ============================================================================
+// Enhanced Sanitization Functions
+// ============================================================================
+
+/**
+ * Sanitize a URL by removing dangerous protocols
+ * Returns empty string if URL is invalid or uses dangerous protocol
+ * @param input - URL to sanitize
+ * @returns Sanitized URL or empty string
+ */
+export function sanitizeUrl(input: string): string {
+  if (!input) return ''
+
+  const trimmed = input.trim()
+
+  // Check for dangerous protocols
+  const lowerUrl = trimmed.toLowerCase()
+  for (const protocol of DANGEROUS_PROTOCOLS) {
+    if (lowerUrl.startsWith(protocol)) {
+      return ''
+    }
+  }
+
+  // Validate URL format
+  try {
+    const url = new URL(trimmed)
+    // Only allow http and https
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return ''
+    }
+    return trimmed
+  } catch {
+    // If it's not a valid URL, return empty
+    return ''
+  }
+}
+
+/**
+ * Sanitize user bio content
+ * Strips HTML, enforces length limit, removes dangerous patterns
+ * @param input - Bio content to sanitize
+ * @returns Sanitized bio
+ */
+export function sanitizeBio(input: string): string {
+  if (!input) return ''
+
+  // Strip all HTML
+  let sanitized = sanitizeText(input)
+
+  // Trim whitespace
+  sanitized = sanitized.trim()
+
+  // Enforce length limit
+  if (sanitized.length > INPUT_LIMITS.BIO_MAX) {
+    sanitized = sanitized.slice(0, INPUT_LIMITS.BIO_MAX)
+  }
+
+  return sanitized
+}
+
+/**
+ * Sanitize post content
+ * Strips dangerous HTML, enforces length limit
+ * @param input - Post content to sanitize
+ * @returns Sanitized post content
+ */
+export function sanitizePostContent(input: string): string {
+  if (!input) return ''
+
+  // Strip all HTML tags
+  let sanitized = sanitizeText(input)
+
+  // Trim whitespace
+  sanitized = sanitized.trim()
+
+  // Enforce length limit
+  if (sanitized.length > INPUT_LIMITS.POST_CONTENT_MAX) {
+    sanitized = sanitized.slice(0, INPUT_LIMITS.POST_CONTENT_MAX)
+  }
+
+  return sanitized
+}
+
+/**
+ * Sanitize event title
+ * Strips HTML, enforces length limit
+ * @param input - Event title to sanitize
+ * @returns Sanitized event title
+ */
+export function sanitizeEventTitle(input: string): string {
+  if (!input) return ''
+
+  // Strip all HTML
+  let sanitized = sanitizeText(input)
+
+  // Trim whitespace
+  sanitized = sanitized.trim()
+
+  // Enforce length limit
+  if (sanitized.length > INPUT_LIMITS.EVENT_TITLE_MAX) {
+    sanitized = sanitized.slice(0, INPUT_LIMITS.EVENT_TITLE_MAX)
+  }
+
+  return sanitized
+}
+
+/**
+ * Sanitize event description
+ * Strips dangerous HTML, enforces length limit
+ * @param input - Event description to sanitize
+ * @returns Sanitized event description
+ */
+export function sanitizeEventDescription(input: string): string {
+  if (!input) return ''
+
+  // Strip all HTML
+  let sanitized = sanitizeText(input)
+
+  // Trim whitespace
+  sanitized = sanitized.trim()
+
+  // Enforce length limit
+  if (sanitized.length > INPUT_LIMITS.EVENT_DESCRIPTION_MAX) {
+    sanitized = sanitized.slice(0, INPUT_LIMITS.EVENT_DESCRIPTION_MAX)
+  }
+
+  return sanitized
+}
+
+/**
+ * Quick check for dangerous content patterns
+ * Use this for fast preliminary checks before more thorough sanitization
+ * @param input - Content to check
+ * @returns true if dangerous patterns are detected
+ */
+export function containsDangerousContent(input: string): boolean {
+  if (!input) return false
+
+  // Check against all dangerous patterns
+  for (const pattern of DANGEROUS_PATTERNS) {
+    if (pattern.test(input)) {
+      return true
+    }
+  }
+
+  // Check for dangerous URL protocols in any part of the string
+  const lowerInput = input.toLowerCase()
+  for (const protocol of DANGEROUS_PROTOCOLS) {
+    if (lowerInput.includes(protocol)) {
+      return true
+    }
+  }
+
+  return false
 }

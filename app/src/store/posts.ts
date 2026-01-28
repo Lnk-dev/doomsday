@@ -39,6 +39,8 @@ interface PostsState {
   getFeed: (variant: PostVariant) => Post[]
   /** Get a single post by ID */
   getPost: (postId: ID) => Post | undefined
+  /** Update reply count for a post */
+  updateReplyCount: (postId: ID, count: number) => void
 }
 
 /**
@@ -224,6 +226,23 @@ export const usePostsStore = create<PostsState>()(
 
       getPost: (postId) => {
         return get().posts[postId]
+      },
+
+      updateReplyCount: (postId, count) => {
+        set((state) => {
+          const post = state.posts[postId]
+          if (!post) return state
+
+          return {
+            posts: {
+              ...state.posts,
+              [postId]: {
+                ...post,
+                replies: count,
+              },
+            },
+          }
+        })
       },
     }),
     {

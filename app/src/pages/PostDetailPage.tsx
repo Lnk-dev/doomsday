@@ -12,17 +12,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCheck } from 'lucide-react'
 import { ShareModal } from '@/components/ui/ShareModal'
-import { usePostsStore, useUserStore } from '@/store'
+import { usePostsStore, useUserStore, useCommentsStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState, useMemo } from 'react'
-
-interface Comment {
-  id: string
-  authorUsername: string
-  content: string
-  createdAt: number
-  likes: number
-}
+import { useState, useMemo, useEffect } from 'react'
 
 export function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -38,26 +30,33 @@ export function PostDetailPage() {
   const followUser = useUserStore((state) => state.followUser)
   const unfollowUser = useUserStore((state) => state.unfollowUser)
 
-  // Capture initial timestamp once to avoid Date.now() during render
-  const [initialTime] = useState(() => Date.now())
+  // Comments store hooks
+  const commentsData = useCommentsStore((state) => state.commentsByPost[postId || ''] || [])
+  const allComments = useCommentsStore((state) => state.comments)
+  const addComment = useCommentsStore((state) => state.addComment)
+  const likeComment = useCommentsStore((state) => state.likeComment)
+  const unlikeComment = useCommentsStore((state) => state.unlikeComment)
+  const getCommentCount = useCommentsStore((state) => state.getCommentCount)
 
-  // Local state for comments (would be in store in real app)
-  const [comments, setComments] = useState<Comment[]>(() => [
-    {
-      id: '1',
-      authorUsername: 'skeptic_observer',
-      content: 'This is exactly what I\'ve been thinking. The signs are everywhere.',
-      createdAt: initialTime - 30 * 60 * 1000,
-      likes: 12,
-    },
-    {
-      id: '2',
-      authorUsername: 'hopeful_one',
-      content: 'I disagree. We\'ve been through worse and survived.',
-      createdAt: initialTime - 15 * 60 * 1000,
-      likes: 8,
-    },
-  ])
+  // Posts store for updating reply count
+  const updateReplyCount = usePostsStore((state) => state.updateReplyCount)
+
+  // Get comments for this post, sorted by creation time
+  const comments = useMemo(() => {
+    return commentsData
+      .map((id) => allComments[id])
+      .filter(Boolean)
+      .sort((a, b) => a.createdAt - b.createdAt)
+  }, [commentsData, allComments])
+
+  // Sync reply count with posts store
+  useEffect(() => {
+    if (postId) {
+      const count = getCommentCount(postId)
+      updateReplyCount(postId, count)
+    }
+  }, [postId, comments.length, getCommentCount, updateReplyCount])
+
   const [newComment, setNewComment] = useState('')
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -90,17 +89,9 @@ export function PostDetailPage() {
   }
 
   const handleAddComment = () => {
-    if (!newComment.trim()) return
+    if (!newComment.trim() || !postId) return
 
-    const comment: Comment = {
-      id: Date.now().toString(),
-      authorUsername: author.username,
-      content: newComment.trim(),
-      createdAt: Date.now(),
-      likes: 0,
-    }
-
-    setComments([...comments, comment])
+    addComment(postId, author.username, newComment.trim())
     setNewComment('')
   }
 
@@ -216,34 +207,56 @@ export function PostDetailPage() {
         </div>
 
         <div className="divide-y divide-[#222]">
-          {comments.map((comment) => (
-            <div key={comment.id} className="px-4 py-3">
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#333] flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[14px] font-semibold text-white">
-                      @{comment.authorUsername}
-                    </span>
-                    <span className="text-[12px] text-[#555]">
-                      {formatRelativeTime(comment.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-[14px] text-[#ccc]">{comment.content}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#ff3040]">
-                      <Heart size={14} />
-                      {comment.likes}
-                    </button>
-                    <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#3b82f6]">
-                      <MessageCircle size={14} />
-                      Reply
-                    </button>
+          {comments.map((comment) => {
+            const isCommentLiked = comment.likedBy.includes(userId)
+            return (
+              <div key={comment.id} className={`px-4 py-3 ${comment.isPending ? 'opacity-60' : ''}`}>
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#333] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[14px] font-semibold text-white">
+                        @{comment.authorUsername}
+                      </span>
+                      <span className="text-[12px] text-[#555]">
+                        {formatRelativeTime(comment.createdAt)}
+                      </span>
+                      {comment.isPending && (
+                        <span className="text-[10px] text-[#555]">Sending...</span>
+                      )}
+                      {comment.error && (
+                        <span className="text-[10px] text-[#ff3040]">{comment.error}</span>
+                      )}
+                    </div>
+                    <p className="text-[14px] text-[#ccc]">{comment.content}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <button
+                        onClick={() => {
+                          if (isCommentLiked) {
+                            unlikeComment(comment.id, userId)
+                          } else {
+                            likeComment(comment.id, userId)
+                          }
+                        }}
+                        className={`flex items-center gap-1 text-[12px] transition-colors ${
+                          isCommentLiked
+                            ? 'text-[#ff3040]'
+                            : 'text-[#777] hover:text-[#ff3040]'
+                        }`}
+                      >
+                        <Heart size={14} fill={isCommentLiked ? '#ff3040' : 'none'} />
+                        {comment.likes}
+                      </button>
+                      <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#3b82f6]">
+                        <MessageCircle size={14} />
+                        Reply
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

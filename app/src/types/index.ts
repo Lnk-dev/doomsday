@@ -149,3 +149,21 @@ export interface LeaderboardEntry {
  * Leaderboard category
  */
 export type LeaderboardCategory = 'doomer' | 'life' | 'prepper' | 'salvation' | 'preventer'
+
+/**
+ * Comment on a post
+ */
+export interface Comment {
+  id: ID
+  postId: ID
+  authorUsername: string
+  authorAvatar?: string
+  content: string
+  createdAt: Timestamp
+  likes: number
+  likedBy: ID[]
+  /** Whether comment is pending server confirmation */
+  isPending?: boolean
+  /** Error message if comment failed */
+  error?: string
+}

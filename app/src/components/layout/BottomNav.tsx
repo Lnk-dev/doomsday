@@ -1,6 +1,24 @@
+/**
+ * BottomNav Component
+ *
+ * Fixed bottom navigation bar styled like Instagram Threads.
+ * Features:
+ * - Icon-only navigation (no labels)
+ * - Active state with bolder stroke weight
+ * - Safe area padding for notched devices
+ *
+ * Navigation structure:
+ * - Home (/) - Doom scroll feed
+ * - Search (/events) - Event/prediction search
+ * - Compose (/compose) - Create new post
+ * - Activity (/life) - Life feed & notifications
+ * - Profile (/profile) - User profile
+ */
+
 import { NavLink } from 'react-router-dom'
 import { Home, Search, PenSquare, Heart, User } from 'lucide-react'
 
+/** Navigation items configuration */
 const navItems = [
   { to: '/', icon: Home },
   { to: '/events', icon: Search },

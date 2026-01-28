@@ -36,5 +36,26 @@ export type { Bookmark, BookmarkCollection } from './bookmarks'
 export { useLoadingStore } from './loading'
 export { useSearchStore } from './search'
 export { useStreaksStore, STREAK_MILESTONES } from './streaks'
+export {
+  useOnboardingStore,
+  INTEREST_CATEGORIES,
+  SUGGESTED_USERS,
+} from './onboarding'
+export type { OnboardingStep, OnboardingState } from './onboarding'
+export {
+  useResponsibleGamblingStore,
+  formatDuration,
+  formatTimeRemaining,
+} from './responsibleGambling'
+export type {
+  BettingLimit,
+  SelfExclusion,
+  RealityCheck,
+  ResponsibleGamblingState,
+} from './responsibleGambling'
+export { useFeatureFlagsStore } from './featureFlags'
+export type { FeatureFlagState } from './featureFlags'
+export { usePredictionsStore } from './predictions'
+export type { Prediction, PredictionStats } from './predictions'
 export { useReportsStore } from './reports'
 export type { Report, ReportStatus } from './reports'

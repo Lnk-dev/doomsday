@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { WalletProvider } from '@/providers/WalletProvider'
 import { Loader2 } from 'lucide-react'
 import './index.css'
 
@@ -28,8 +29,9 @@ function PageLoader() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <WalletProvider>
+      <BrowserRouter>
+        <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={
             <Suspense fallback={<PageLoader />}>
@@ -92,8 +94,9 @@ function App() {
             </Suspense>
           } />
         </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </WalletProvider>
   )
 }
 

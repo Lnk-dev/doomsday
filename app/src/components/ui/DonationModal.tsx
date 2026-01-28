@@ -91,18 +91,23 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="donation-modal-title"
+    >
       <div
         className="w-full max-w-lg bg-[#111] rounded-t-3xl animate-slide-up"
         style={{ animation: 'slideUp 0.3s ease-out' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-[#333]">
-          <button onClick={onClose}>
-            <X size={24} className="text-white" />
+          <button onClick={onClose} aria-label="Close donation dialog">
+            <X size={24} className="text-white" aria-hidden="true" />
           </button>
-          <h2 className="text-[17px] font-semibold text-white">Send Life</h2>
-          <div className="w-6" /> {/* Spacer for centering */}
+          <h2 id="donation-modal-title" className="text-[17px] font-semibold text-white">Send Life</h2>
+          <div className="w-6" aria-hidden="true" /> {/* Spacer for centering */}
         </div>
 
         {showSuccess ? (
@@ -125,7 +130,7 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
                   @{recipient.username}
                 </p>
                 <p className="text-[13px] text-[#00ba7c] flex items-center gap-1">
-                  <Sparkles size={12} />
+                  <Sparkles size={12} aria-hidden="true" />
                   Will receive $LIFE
                 </p>
               </div>

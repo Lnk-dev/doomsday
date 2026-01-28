@@ -7,7 +7,7 @@
  * Features:
  * - Avatar column with optional thread line for replies
  * - Verified badge support
- * - Action buttons (like, comment, repost, share)
+ * - Interactive action buttons (like, comment, repost, share)
  * - Variant styling for doom (red) and life (green) posts
  */
 
@@ -16,10 +16,11 @@ import { Heart, MessageCircle, Repeat2, Send, MoreHorizontal } from 'lucide-reac
 interface ThreadPostProps {
   /** Author information */
   author: {
-    name: string
+    name?: string
     username: string
     avatar?: string
     verified?: boolean
+    address?: string | null
   }
   /** Post content text */
   content: string
@@ -33,6 +34,10 @@ interface ThreadPostProps {
   hasThread?: boolean
   /** Visual variant: doom (red accent), life (green accent), or default */
   variant?: 'doom' | 'life' | 'default'
+  /** Is the post liked by current user */
+  isLiked?: boolean
+  /** Callback when like button is clicked */
+  onLike?: () => void
 }
 
 export function ThreadPost({
@@ -43,6 +48,8 @@ export function ThreadPost({
   replies,
   hasThread = false,
   variant = 'default',
+  isLiked = false,
+  onLike,
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
@@ -95,24 +102,35 @@ export function ThreadPost({
 
         {/* Action buttons row */}
         <div className="flex items-center gap-1 mt-3 -ml-2">
-          <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
+          {/* Like button */}
+          <button
+            onClick={onLike}
+            className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+          >
             <Heart
               size={20}
-              className="text-[#777] group-hover:text-white transition-colors"
+              className={`transition-colors ${
+                isLiked
+                  ? 'text-[#ff3040] fill-[#ff3040]'
+                  : 'text-[#777] group-hover:text-white'
+              }`}
             />
           </button>
+          {/* Comment button */}
           <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
             <MessageCircle
               size={20}
               className="text-[#777] group-hover:text-white transition-colors"
             />
           </button>
+          {/* Repost button */}
           <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
             <Repeat2
               size={20}
               className="text-[#777] group-hover:text-white transition-colors"
             />
           </button>
+          {/* Share button */}
           <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
             <Send
               size={20}

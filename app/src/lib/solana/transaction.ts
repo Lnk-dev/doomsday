@@ -9,7 +9,6 @@ import {
   Connection,
   Transaction,
   VersionedTransaction,
-  SendTransactionError,
 } from '@solana/web3.js'
 import type { TransactionSignature, Commitment } from '@solana/web3.js'
 import type { WalletContextState } from '@solana/wallet-adapter-react'
@@ -119,10 +118,7 @@ export async function sendTransactionWithRetry(
       )
 
       if (confirmation.value.err) {
-        throw new SendTransactionError(
-          `Transaction failed: ${JSON.stringify(confirmation.value.err)}`,
-          []
-        )
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`)
       }
 
       onStatusChange('confirmed')

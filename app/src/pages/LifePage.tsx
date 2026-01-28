@@ -45,11 +45,15 @@ export function LifePage() {
   const doomBalance = useUserStore((state) => state.doomBalance)
   const lifePosts = useUserStore((state) => state.lifePosts)
   const daysLiving = useUserStore((state) => state.daysLiving)
+  const isHidden = useUserStore((state) => state.isHidden)
 
-  // Compute feed from raw data
+  // Compute feed from raw data (filtering out blocked/muted users)
   const posts = useMemo(() => {
-    return lifeFeed.map((id) => allPosts[id]).filter(Boolean)
-  }, [allPosts, lifeFeed])
+    return lifeFeed
+      .map((id) => allPosts[id])
+      .filter(Boolean)
+      .filter((post) => !isHidden(post.author.username))
+  }, [allPosts, lifeFeed, isHidden])
 
   // Compute life post cost
   const lifePostCost = useMemo(() => {

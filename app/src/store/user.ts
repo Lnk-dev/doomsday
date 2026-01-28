@@ -37,12 +37,22 @@ interface UserState {
   isConnected: boolean
   /** List of followed usernames */
   following: string[]
+  /** List of blocked usernames */
+  blocked: string[]
+  /** List of muted usernames */
+  muted: string[]
 
   // Computed
   /** Calculate cost of next life post */
   getLifePostCost: () => number
   /** Check if following a user */
   isFollowing: (username: string) => boolean
+  /** Check if user is blocked */
+  isBlocked: (username: string) => boolean
+  /** Check if user is muted */
+  isMuted: (username: string) => boolean
+  /** Check if content should be hidden (blocked or muted) */
+  isHidden: (username: string) => boolean
 
   // Actions
   /** Update username */
@@ -65,6 +75,14 @@ interface UserState {
   unfollowUser: (username: string) => void
   /** Update user profile */
   updateProfile: (updates: { displayName?: string; bio?: string; avatar?: string }) => void
+  /** Block a user */
+  blockUser: (username: string) => void
+  /** Unblock a user */
+  unblockUser: (username: string) => void
+  /** Mute a user */
+  muteUser: (username: string) => void
+  /** Unmute a user */
+  unmuteUser: (username: string) => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -83,6 +101,8 @@ export const useUserStore = create<UserState>()(
       lifePosts: 0,
       isConnected: false,
       following: [],
+      blocked: [],
+      muted: [],
 
       getLifePostCost: () => {
         const { lifePosts, daysLiving } = get()
@@ -93,6 +113,19 @@ export const useUserStore = create<UserState>()(
 
       isFollowing: (username) => {
         return get().following.includes(username)
+      },
+
+      isBlocked: (username) => {
+        return get().blocked.includes(username)
+      },
+
+      isMuted: (username) => {
+        return get().muted.includes(username)
+      },
+
+      isHidden: (username) => {
+        const state = get()
+        return state.blocked.includes(username) || state.muted.includes(username)
       },
 
       setUsername: (username) => {
@@ -165,6 +198,36 @@ export const useUserStore = create<UserState>()(
           author: updates.avatar !== undefined
             ? { ...state.author, avatar: updates.avatar }
             : state.author,
+        }))
+      },
+
+      blockUser: (username) => {
+        set((state) => ({
+          blocked: state.blocked.includes(username)
+            ? state.blocked
+            : [...state.blocked, username],
+          // Also unfollow if following
+          following: state.following.filter((u) => u !== username),
+        }))
+      },
+
+      unblockUser: (username) => {
+        set((state) => ({
+          blocked: state.blocked.filter((u) => u !== username),
+        }))
+      },
+
+      muteUser: (username) => {
+        set((state) => ({
+          muted: state.muted.includes(username)
+            ? state.muted
+            : [...state.muted, username],
+        }))
+      },
+
+      unmuteUser: (username) => {
+        set((state) => ({
+          muted: state.muted.filter((u) => u !== username),
         }))
       },
     }),

@@ -10,7 +10,7 @@
  */
 
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send } from 'lucide-react'
+import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCheck } from 'lucide-react'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
@@ -34,6 +34,9 @@ export function PostDetailPage() {
   const unlikePost = usePostsStore((state) => state.unlikePost)
   const userId = useUserStore((state) => state.userId)
   const author = useUserStore((state) => state.author)
+  const following = useUserStore((state) => state.following)
+  const followUser = useUserStore((state) => state.followUser)
+  const unfollowUser = useUserStore((state) => state.unfollowUser)
 
   // Local state for comments (would be in store in real app)
   const [comments, setComments] = useState<Comment[]>([
@@ -118,7 +121,7 @@ export function PostDetailPage() {
             className="w-10 h-10 rounded-full bg-[#333]"
             style={{ border: `2px solid ${accentColor}` }}
           />
-          <div>
+          <div className="flex-1">
             <div className="flex items-center gap-1">
               <span className="text-[15px] font-semibold text-white">
                 @{post.author.username}
@@ -133,6 +136,35 @@ export function PostDetailPage() {
               {formatRelativeTime(post.createdAt)}
             </span>
           </div>
+          {/* Follow button (don't show for own posts) */}
+          {post.author.username !== author.username && (
+            <button
+              onClick={() => {
+                if (following.includes(post.author.username)) {
+                  unfollowUser(post.author.username)
+                } else {
+                  followUser(post.author.username)
+                }
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
+                following.includes(post.author.username)
+                  ? 'bg-[#333] text-white'
+                  : 'bg-white text-black'
+              }`}
+            >
+              {following.includes(post.author.username) ? (
+                <>
+                  <UserCheck size={14} />
+                  Following
+                </>
+              ) : (
+                <>
+                  <UserPlus size={14} />
+                  Follow
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Content */}

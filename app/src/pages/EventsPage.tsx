@@ -14,6 +14,7 @@ import { Search, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 import { useEventsStore } from '@/store'
 import { formatCountdown, formatNumber } from '@/lib/utils'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { EventCategory } from '@/types'
 
 const categories: (EventCategory | 'all')[] = [
@@ -38,6 +39,7 @@ const categoryLabels: Record<EventCategory | 'all', string> = {
 }
 
 export function EventsPage() {
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<EventCategory | 'all'>('all')
 
@@ -106,6 +108,7 @@ export function EventsPage() {
           return (
             <button
               key={event.id}
+              onClick={() => navigate(`/events/${event.id}`)}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#111] transition-colors text-left"
             >
               {/* Countdown badge */}

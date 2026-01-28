@@ -55,3 +55,5 @@ export type {
 } from './responsibleGambling'
 export { useFeatureFlagsStore } from './featureFlags'
 export type { FeatureFlagState } from './featureFlags'
+export { usePredictionsStore } from './predictions'
+export type { Prediction, PredictionStats } from './predictions'

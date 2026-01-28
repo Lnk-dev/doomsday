@@ -2,8 +2,15 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { WalletProvider } from '@/providers/WalletProvider'
-import { Loader2 } from 'lucide-react'
 import { useThemeStore } from '@/store'
+import {
+  FeedSkeleton,
+  ProfileSkeleton,
+  EventsListSkeleton,
+  EventDetailSkeleton,
+  LeaderboardSkeleton,
+  PageLoader,
+} from '@/components/ui/Skeleton'
 import './index.css'
 
 // Lazy load page components for code splitting
@@ -19,15 +26,6 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ defa
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ default: m.PostDetailPage })))
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
 
-/** Loading spinner shown during lazy load */
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center min-h-[50vh]">
-      <Loader2 className="w-8 h-8 text-[#ff3040] animate-spin" />
-    </div>
-  )
-}
-
 function App() {
   const initTheme = useThemeStore((state) => state.initTheme)
 
@@ -41,38 +39,26 @@ function App() {
       <BrowserRouter>
         <Routes>
         <Route element={<AppLayout />}>
+          {/* Feed pages - show feed skeleton */}
           <Route path="/" element={
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<FeedSkeleton />}>
               <DoomScrollPage />
             </Suspense>
           } />
           <Route path="/life" element={
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<FeedSkeleton />}>
               <LifePage />
             </Suspense>
           } />
+
+          {/* Events pages - show events skeleton */}
           <Route path="/events" element={
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<EventsListSkeleton />}>
               <EventsPage />
             </Suspense>
           } />
-          <Route path="/leaderboard" element={
-            <Suspense fallback={<PageLoader />}>
-              <LeaderboardPage />
-            </Suspense>
-          } />
-          <Route path="/profile" element={
-            <Suspense fallback={<PageLoader />}>
-              <ProfilePage />
-            </Suspense>
-          } />
-          <Route path="/compose" element={
-            <Suspense fallback={<PageLoader />}>
-              <ComposePage />
-            </Suspense>
-          } />
           <Route path="/events/:eventId" element={
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<EventDetailSkeleton />}>
               <EventDetailPage />
             </Suspense>
           } />
@@ -81,24 +67,45 @@ function App() {
               <CreateEventPage />
             </Suspense>
           } />
+
+          {/* Leaderboard - show leaderboard skeleton */}
+          <Route path="/leaderboard" element={
+            <Suspense fallback={<LeaderboardSkeleton />}>
+              <LeaderboardPage />
+            </Suspense>
+          } />
+
+          {/* Profile pages - show profile skeleton */}
+          <Route path="/profile" element={
+            <Suspense fallback={<ProfileSkeleton />}>
+              <ProfilePage />
+            </Suspense>
+          } />
+          <Route path="/timeline" element={
+            <Suspense fallback={<FeedSkeleton count={3} />}>
+              <LifeTimelinePage />
+            </Suspense>
+          } />
+          <Route path="/timeline/:username" element={
+            <Suspense fallback={<FeedSkeleton count={3} />}>
+              <LifeTimelinePage />
+            </Suspense>
+          } />
+
+          {/* Other pages - generic loader */}
+          <Route path="/compose" element={
+            <Suspense fallback={<PageLoader />}>
+              <ComposePage />
+            </Suspense>
+          } />
           <Route path="/settings" element={
             <Suspense fallback={<PageLoader />}>
               <SettingsPage />
             </Suspense>
           } />
           <Route path="/post/:postId" element={
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<FeedSkeleton count={1} />}>
               <PostDetailPage />
-            </Suspense>
-          } />
-          <Route path="/timeline" element={
-            <Suspense fallback={<PageLoader />}>
-              <LifeTimelinePage />
-            </Suspense>
-          } />
-          <Route path="/timeline/:username" element={
-            <Suspense fallback={<PageLoader />}>
-              <LifeTimelinePage />
             </Suspense>
           } />
         </Route>

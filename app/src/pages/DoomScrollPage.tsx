@@ -15,7 +15,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
-import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
+import { Flame, Clock, TrendingUp, UserPlus, Search } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
@@ -118,7 +118,17 @@ export function DoomScrollPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <PageHeader showLogo />
+      <PageHeader
+        showLogo
+        rightAction={
+          <button
+            onClick={() => navigate('/search')}
+            className="p-1 text-[#777] hover:text-white transition-colors"
+          >
+            <Search size={22} />
+          </button>
+        }
+      />
 
       {/* Feed toggle tabs */}
       <div className="flex border-b border-[#333]">

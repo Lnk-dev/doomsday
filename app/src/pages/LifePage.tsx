@@ -1,89 +1,123 @@
+/**
+ * LifePage
+ *
+ * Feed displaying life posts - content from users choosing to live
+ * despite the doom. Posting here costs $DOOM tokens.
+ *
+ * Features:
+ * - Life feed from store
+ * - Cost indicator for next post
+ * - Interactive like buttons
+ * - Activity tabs (All, Follows, Replies, Mentions)
+ */
+
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { Heart } from 'lucide-react'
+import { usePostsStore, useUserStore } from '@/store'
+import { formatRelativeTime } from '@/lib/utils'
+import { useState } from 'react'
 
-const mockLifePosts = [
-  {
-    id: 1,
-    author: { name: 'Life Liver', username: 'lifeliver', verified: true },
-    content: 'Today I planted a garden. Small acts of creation against the void.\n\nEvery seed is a bet on tomorrow.',
-    timestamp: '1h',
-    likes: 128,
-    replies: 23,
-    variant: 'life' as const,
-  },
-  {
-    id: 2,
-    author: { name: 'Sunrise Watcher', username: 'sunrisewatcher' },
-    content: 'Watched the sunrise this morning. Still happening. Still beautiful.\n\nDay 847 of choosing to live.',
-    timestamp: '3h',
-    likes: 445,
-    replies: 34,
-    variant: 'life' as const,
-  },
-  {
-    id: 3,
-    author: { name: 'Present Moment', username: 'presentmoment', verified: true },
-    content: 'The doomers want you to forget that every moment of joy is a rebellion.\n\nLive anyway.',
-    timestamp: '5h',
-    likes: 1892,
-    replies: 156,
-    variant: 'life' as const,
-  },
-  {
-    id: 4,
-    author: { name: 'Builder', username: 'builder_anon' },
-    content: 'Started learning to play piano at 45. Why? Because there might be a tomorrow.\n\nAnd if there isn\'t, at least I tried something new today.',
-    timestamp: '8h',
-    likes: 2341,
-    replies: 189,
-    variant: 'life' as const,
-  },
-]
+type ActivityTab = 'all' | 'follows' | 'replies' | 'mentions'
 
 export function LifePage() {
+  const [activeTab, setActiveTab] = useState<ActivityTab>('all')
+
+  // Store hooks
+  const posts = usePostsStore((state) => state.getFeed('life'))
+  const likePost = usePostsStore((state) => state.likePost)
+  const unlikePost = usePostsStore((state) => state.unlikePost)
+  const userId = useUserStore((state) => state.userId)
+  const doomBalance = useUserStore((state) => state.doomBalance)
+  const getLifePostCost = useUserStore((state) => state.getLifePostCost)
+
+  const lifePostCost = getLifePostCost()
+  const canAfford = doomBalance >= lifePostCost
+
+  /** Handle like button click */
+  const handleLike = (postId: string, isLiked: boolean) => {
+    if (isLiked) {
+      unlikePost(postId, userId)
+    } else {
+      likePost(postId, userId)
+    }
+  }
+
+  const tabs: { id: ActivityTab; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'follows', label: 'Follows' },
+    { id: 'replies', label: 'Replies' },
+    { id: 'mentions', label: 'Mentions' },
+  ]
+
   return (
     <div className="flex flex-col min-h-full">
       <PageHeader title="Activity" />
 
       {/* Activity tabs */}
       <div className="flex border-b border-[#333] overflow-x-auto">
-        <button className="flex-1 min-w-fit px-4 py-3 text-[15px] font-semibold text-white border-b-2 border-white whitespace-nowrap">
-          All
-        </button>
-        <button className="flex-1 min-w-fit px-4 py-3 text-[15px] font-semibold text-[#777] whitespace-nowrap">
-          Follows
-        </button>
-        <button className="flex-1 min-w-fit px-4 py-3 text-[15px] font-semibold text-[#777] whitespace-nowrap">
-          Replies
-        </button>
-        <button className="flex-1 min-w-fit px-4 py-3 text-[15px] font-semibold text-[#777] whitespace-nowrap">
-          Mentions
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-1 min-w-fit px-4 py-3 text-[15px] font-semibold whitespace-nowrap transition-colors ${
+              activeTab === tab.id
+                ? 'text-white border-b-2 border-white'
+                : 'text-[#777]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Life cost banner */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-[#333] bg-[#0a1f0a]">
-        <Heart size={18} className="text-[#00ba7c]" fill="#00ba7c" />
-        <p className="text-[14px] text-[#00ba7c]">
-          Your next life post costs <span className="font-bold">5 $DOOM</span>
+      <div className={`flex items-center gap-3 px-4 py-3 border-b border-[#333] ${
+        canAfford ? 'bg-[#0a1f0a]' : 'bg-[#1f0a0a]'
+      }`}>
+        <Heart
+          size={18}
+          className={canAfford ? 'text-[#00ba7c]' : 'text-[#ff3040]'}
+          fill={canAfford ? '#00ba7c' : '#ff3040'}
+        />
+        <p className={`text-[14px] ${canAfford ? 'text-[#00ba7c]' : 'text-[#ff3040]'}`}>
+          {canAfford ? (
+            <>Your next life post costs <span className="font-bold">{lifePostCost} $DOOM</span></>
+          ) : (
+            <>Need <span className="font-bold">{lifePostCost} $DOOM</span> to post (you have {doomBalance})</>
+          )}
         </p>
       </div>
 
-      {/* Posts */}
+      {/* Posts feed */}
       <div className="divide-y divide-[#333]">
-        {mockLifePosts.map((post) => (
+        {posts.map((post) => (
           <ThreadPost
             key={post.id}
             author={post.author}
             content={post.content}
-            timestamp={post.timestamp}
+            timestamp={formatRelativeTime(post.createdAt)}
             likes={post.likes}
             replies={post.replies}
-            variant={post.variant}
+            variant="life"
+            isLiked={post.likedBy.includes(userId)}
+            onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
           />
         ))}
       </div>
+
+      {/* Empty state */}
+      {posts.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
+          <Heart size={48} className="text-[#333] mb-4" />
+          <p className="text-[15px] text-[#777] text-center">
+            No life posts yet.
+          </p>
+          <p className="text-[13px] text-[#555] text-center mt-1">
+            Choose to live. Post something.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,21 +13,25 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
-import { Heart } from 'lucide-react'
+import { DonationModal } from '@/components/ui/DonationModal'
+import { Heart, Gift } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState } from 'react'
+import type { Author } from '@/types'
 
 type ActivityTab = 'all' | 'follows' | 'replies' | 'mentions'
 
 export function LifePage() {
   const [activeTab, setActiveTab] = useState<ActivityTab>('all')
+  const [donationTarget, setDonationTarget] = useState<Author | null>(null)
 
   // Store hooks
   const posts = usePostsStore((state) => state.getFeed('life'))
   const likePost = usePostsStore((state) => state.likePost)
   const unlikePost = usePostsStore((state) => state.unlikePost)
   const userId = useUserStore((state) => state.userId)
+  const author = useUserStore((state) => state.author)
   const doomBalance = useUserStore((state) => state.doomBalance)
   const getLifePostCost = useUserStore((state) => state.getLifePostCost)
 
@@ -41,6 +45,13 @@ export function LifePage() {
     } else {
       likePost(postId, userId)
     }
+  }
+
+  /** Handle donate button click */
+  const handleDonate = (postAuthor: Author) => {
+    // Can't donate to yourself
+    if (postAuthor.username === author.username) return
+    setDonationTarget(postAuthor)
   }
 
   const tabs: { id: ActivityTab; label: string }[] = [
@@ -91,19 +102,34 @@ export function LifePage() {
 
       {/* Posts feed */}
       <div className="divide-y divide-[#333]">
-        {posts.map((post) => (
-          <ThreadPost
-            key={post.id}
-            author={post.author}
-            content={post.content}
-            timestamp={formatRelativeTime(post.createdAt)}
-            likes={post.likes}
-            replies={post.replies}
-            variant="life"
-            isLiked={post.likedBy.includes(userId)}
-            onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
-          />
-        ))}
+        {posts.map((post) => {
+          const isOwnPost = post.author.username === author.username
+
+          return (
+            <div key={post.id} className="relative">
+              <ThreadPost
+                author={post.author}
+                content={post.content}
+                timestamp={formatRelativeTime(post.createdAt)}
+                likes={post.likes}
+                replies={post.replies}
+                variant="life"
+                isLiked={post.likedBy.includes(userId)}
+                onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
+              />
+              {/* Donate button (only for other users' posts) */}
+              {!isOwnPost && (
+                <button
+                  onClick={() => handleDonate(post.author)}
+                  className="absolute right-4 top-4 flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#00ba7c20] text-[#00ba7c] text-[12px] font-medium hover:bg-[#00ba7c30] transition-colors"
+                >
+                  <Gift size={12} />
+                  Send Life
+                </button>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* Empty state */}
@@ -117,6 +143,14 @@ export function LifePage() {
             Choose to live. Post something.
           </p>
         </div>
+      )}
+
+      {/* Donation modal */}
+      {donationTarget && (
+        <DonationModal
+          recipient={donationTarget}
+          onClose={() => setDonationTarget(null)}
+        />
       )}
     </div>
   )

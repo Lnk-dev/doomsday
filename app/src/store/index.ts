@@ -36,7 +36,6 @@ export type { Bookmark, BookmarkCollection } from './bookmarks'
 export { useLoadingStore } from './loading'
 export { useSearchStore } from './search'
 export { useStreaksStore, STREAK_MILESTONES } from './streaks'
-export { useStatusStore } from './status'
 export {
   useOnboardingStore,
   INTEREST_CATEGORIES,

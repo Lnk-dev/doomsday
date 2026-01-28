@@ -24,6 +24,7 @@
     "@solana/web3.js": "^1.98.4",
     "dompurify": "^3.3.1",
     "lucide-react": "^0.563.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
@@ -37,9 +38,11 @@
     "@testing-library/react": "^16.3.2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^24.10.9",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.18",
     "concurrently": "^9.1.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -50,7 +53,6 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
-    "@vitest/coverage-v8": "^4.0.18",
     "vitest": "^4.0.18"
   }
 }

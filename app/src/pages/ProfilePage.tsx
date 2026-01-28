@@ -12,10 +12,8 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
-import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
-import { StreakDisplay } from '@/components/ui/StreakDisplay'
-import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
-import { useUserStore, usePostsStore, useEventsStore, useStreaksStore } from '@/store'
+import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight, Flame, Award } from 'lucide-react'
+import { useUserStore, usePostsStore, useEventsStore, useStreakStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -46,6 +44,28 @@ export function ProfilePage() {
   const lifePostsCount = useUserStore((state) => state.lifePosts)
   const isConnected = useUserStore((state) => state.isConnected)
   const userId = useUserStore((state) => state.userId)
+
+  // Streak store
+  const currentStreak = useStreakStore((state) => state.currentStreak)
+  const longestStreak = useStreakStore((state) => state.longestStreak)
+  const isInGracePeriod = useStreakStore((state) => state.isInGracePeriod)
+  const getNextMilestone = useStreakStore((state) => state.getNextMilestone)
+  const getClaimableMilestones = useStreakStore((state) => state.getClaimableMilestones)
+  const claimAllMilestones = useStreakStore((state) => state.claimAllMilestones)
+  const addLife = useUserStore((state) => state.addLife)
+
+  const nextMilestone = getNextMilestone()
+  const claimableMilestones = getClaimableMilestones()
+  const progressToNext = nextMilestone
+    ? Math.min((currentStreak / nextMilestone.days) * 100, 100)
+    : 100
+
+  const handleClaimRewards = () => {
+    const { total } = claimAllMilestones()
+    if (total > 0) {
+      addLife(total)
+    }
+  }
 
   // Get raw data (stable references)
   const allPosts = usePostsStore((state) => state.posts)
@@ -186,9 +206,55 @@ export function ProfilePage() {
         <ChevronRight size={20} className="text-[#00ba7c]" />
       </button>
 
-      {/* Daily Streak */}
-      <div className="mx-4 mb-4">
-        <StreakDisplay />
+      {/* Streak Card */}
+      <div className="mx-4 mb-4 p-4 rounded-2xl bg-[#1a1a1a] border border-[#333]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
+            <Flame size={20} className="text-[#ff6b35]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[15px] font-semibold text-white">Daily Streak</p>
+            <p className="text-[12px] text-[#777]">
+              {isInGracePeriod ? 'Grace period active!' : 'Post daily to maintain'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 mb-3">
+          <div className="flex-1 text-center">
+            <p className="text-[24px] font-bold text-[#ff6b35]">{currentStreak}</p>
+            <p className="text-[11px] text-[#777]">Current</p>
+          </div>
+          <div className="w-px h-10 bg-[#333]" />
+          <div className="flex-1 text-center">
+            <p className="text-[24px] font-bold text-white">{longestStreak}</p>
+            <p className="text-[11px] text-[#777]">Best</p>
+          </div>
+        </div>
+        {nextMilestone && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[12px] text-[#777]">
+                Next: {nextMilestone.name} ({nextMilestone.days} days)
+              </span>
+              <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.reward} $LIFE</span>
+            </div>
+            <div className="h-2 bg-[#333] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#ff6b35] transition-all"
+                style={{ width: `${progressToNext}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {claimableMilestones.length > 0 && (
+          <button
+            onClick={handleClaimRewards}
+            className="w-full py-2 rounded-xl bg-[#ff6b35] text-white text-[14px] font-semibold flex items-center justify-center gap-2"
+          >
+            <Award size={16} />
+            Claim {claimableMilestones.length} Reward{claimableMilestones.length > 1 ? 's' : ''}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}

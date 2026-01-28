@@ -57,6 +57,16 @@ export interface Post {
   likedBy: ID[]
   /** Has current user liked this post */
   isLiked?: boolean
+  /** If this is a repost, the original post ID */
+  originalPostId?: ID
+  /** If this is a quote repost, the quote content */
+  quoteContent?: string
+  /** User who reposted (for attribution) */
+  repostedBy?: Author
+  /** Timestamp of the repost action */
+  repostedAt?: Timestamp
+  /** IDs of users who reposted this post */
+  repostedByUsers?: ID[]
 }
 
 /**

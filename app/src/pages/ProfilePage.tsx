@@ -15,8 +15,27 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
 import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
-import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight, Bookmark } from 'lucide-react'
-import { useUserStore, usePostsStore, useEventsStore, useBookmarksStore } from '@/store'
+import { StreakDisplay } from '@/components/ui/StreakDisplay'
+import {
+  Settings,
+  Globe,
+  TrendingUp,
+  Clock,
+  AlertTriangle,
+  Sparkles,
+  Heart,
+  ChevronRight,
+  Bookmark,
+  Flame,
+  Award,
+} from 'lucide-react'
+import {
+  useUserStore,
+  usePostsStore,
+  useEventsStore,
+  useBookmarksStore,
+  useStreaksStore,
+} from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -31,6 +50,11 @@ export function ProfilePage() {
 
   // Streak store
   const checkStreak = useStreaksStore((state) => state.checkStreak)
+  const currentStreak = useStreaksStore((state) => state.currentStreak)
+  const longestStreak = useStreaksStore((state) => state.longestStreak)
+  const isStreakAtRisk = useStreaksStore((state) => state.isStreakAtRisk)
+  const getNextMilestone = useStreaksStore((state) => state.getNextMilestone)
+  const getUnclaimedMilestones = useStreaksStore((state) => state.getUnclaimedMilestones)
 
   // Check streak status on mount
   useEffect(() => {
@@ -47,27 +71,24 @@ export function ProfilePage() {
   const lifePostsCount = useUserStore((state) => state.lifePosts)
   const isConnected = useUserStore((state) => state.isConnected)
   const userId = useUserStore((state) => state.userId)
-
-  // Streak store
-  const currentStreak = useStreakStore((state) => state.currentStreak)
-  const longestStreak = useStreakStore((state) => state.longestStreak)
-  const isInGracePeriod = useStreakStore((state) => state.isInGracePeriod)
-  const getNextMilestone = useStreakStore((state) => state.getNextMilestone)
-  const getClaimableMilestones = useStreakStore((state) => state.getClaimableMilestones)
-  const claimAllMilestones = useStreakStore((state) => state.claimAllMilestones)
   const addLife = useUserStore((state) => state.addLife)
 
   const nextMilestone = getNextMilestone()
-  const claimableMilestones = getClaimableMilestones()
+  const claimableMilestones = getUnclaimedMilestones()
+  const atRisk = isStreakAtRisk()
   const progressToNext = nextMilestone
     ? Math.min((currentStreak / nextMilestone.days) * 100, 100)
     : 100
 
+  // Claim milestone rewards
+  const claimMilestone = useStreaksStore((state) => state.claimMilestone)
   const handleClaimRewards = () => {
-    const { total } = claimAllMilestones()
-    if (total > 0) {
-      addLife(total)
-    }
+    claimableMilestones.forEach((milestone) => {
+      const bonus = claimMilestone(milestone.days)
+      if (bonus > 0) {
+        addLife(bonus)
+      }
+    })
   }
 
   // Get raw data (stable references)
@@ -248,7 +269,7 @@ export function ProfilePage() {
           <div className="flex-1">
             <p className="text-[15px] font-semibold text-white">Daily Streak</p>
             <p className="text-[12px] text-[#777]">
-              {isInGracePeriod ? 'Grace period active!' : 'Post daily to maintain'}
+              {atRisk ? 'At risk - post today!' : 'Post daily to maintain'}
             </p>
           </div>
         </div>
@@ -269,7 +290,7 @@ export function ProfilePage() {
               <span className="text-[12px] text-[#777]">
                 Next: {nextMilestone.name} ({nextMilestone.days} days)
               </span>
-              <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.reward} $LIFE</span>
+              <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.bonus} $LIFE</span>
             </div>
             <div className="h-2 bg-[#333] rounded-full overflow-hidden">
               <div

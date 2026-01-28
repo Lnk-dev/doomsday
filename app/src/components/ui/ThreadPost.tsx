@@ -103,8 +103,11 @@ export function ThreadPost({
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
 
-  // postId is available for future use (e.g., analytics, navigation)
+  // Props available for future use
   void postId
+  void isReposted
+  void onRepost
+  void onQuoteRepost
 
   // Repost menu state
   const [showRepostMenu, setShowRepostMenu] = useState(false)

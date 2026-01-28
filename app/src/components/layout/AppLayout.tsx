@@ -28,6 +28,9 @@ export function AppLayout() {
 
       {/* Fixed bottom navigation */}
       <BottomNav />
+
+      {/* Global toast notifications */}
+      <ToastContainer />
     </div>
   )
 }

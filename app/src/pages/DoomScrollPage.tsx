@@ -9,15 +9,17 @@
  * - Sort options (Hot / New / Top)
  * - Infinite scroll of doom posts
  * - Real-time like interactions
+ * - Loading skeleton states
  */
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
+import { FeedSkeleton } from '@/components/ui/Skeleton'
 import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
-import { usePostsStore, useUserStore } from '@/store'
+import { usePostsStore, useUserStore, useLoadingStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Post } from '@/types'
 
@@ -37,6 +39,15 @@ export function DoomScrollPage() {
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
   const [sortBy, setSortBy] = useState<SortOption>('hot')
   const [sharePost, setSharePost] = useState<Post | null>(null)
+
+  // Loading state
+  const isLoading = useLoadingStore((state) => state.isLoading('posts'))
+  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
+
+  // Simulate initial loading on mount
+  useEffect(() => {
+    simulateLoading('posts', 1000)
+  }, [simulateLoading])
 
   // Get raw data from store (stable references)
   const allPosts = usePostsStore((state) => state.posts)
@@ -139,28 +150,32 @@ export function DoomScrollPage() {
         })}
       </div>
 
-      {/* Posts feed */}
-      <div className="divide-y divide-[#333]">
-        {sortedPosts.map((post) => (
-          <ThreadPost
-            key={post.id}
-            postId={post.id}
-            author={post.author}
-            content={post.content}
-            timestamp={formatRelativeTime(post.createdAt)}
-            likes={post.likes}
-            replies={post.replies}
-            variant="doom"
-            isLiked={post.likedBy.includes(userId)}
-            onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
-            onClick={() => navigate(`/post/${post.id}`)}
-            onShare={() => setSharePost(post)}
-          />
-        ))}
-      </div>
+      {/* Posts feed - show skeleton while loading */}
+      {isLoading ? (
+        <FeedSkeleton count={5} />
+      ) : (
+        <div className="divide-y divide-[#333]">
+          {sortedPosts.map((post) => (
+            <ThreadPost
+              key={post.id}
+              postId={post.id}
+              author={post.author}
+              content={post.content}
+              timestamp={formatRelativeTime(post.createdAt)}
+              likes={post.likes}
+              replies={post.replies}
+              variant="doom"
+              isLiked={post.likedBy.includes(userId)}
+              onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
+              onClick={() => navigate(`/post/${post.id}`)}
+              onShare={() => setSharePost(post)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Empty state */}
-      {sortedPosts.length === 0 && (
+      {!isLoading && sortedPosts.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
           {activeTab === 'following' ? (
             <>

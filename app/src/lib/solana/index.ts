@@ -5,3 +5,4 @@
 
 export * from './errors'
 export * from './transaction'
+export * from './config'

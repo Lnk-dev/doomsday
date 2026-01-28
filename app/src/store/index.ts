@@ -1,0 +1,8 @@
+/**
+ * Store exports
+ *
+ * Central export point for all Zustand stores.
+ */
+
+export { usePostsStore } from './posts'
+export { useUserStore } from './user'

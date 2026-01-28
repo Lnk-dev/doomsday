@@ -1,120 +1,142 @@
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Plus, Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Clock, TrendingUp, TrendingDown } from 'lucide-react'
 
 const mockEvents = [
   {
     id: 1,
     title: 'AI Singularity',
     category: 'Technology',
-    countdown: '847 days',
-    doomStake: 125000,
-    lifeStake: 89000,
-    odds: 58,
+    countdown: '847d 14h',
+    doomPercent: 58,
+    totalStake: 214000,
+    trending: 'up',
   },
   {
     id: 2,
     title: 'Global Economic Collapse',
     category: 'Economic',
-    countdown: '182 days',
-    doomStake: 450000,
-    lifeStake: 320000,
-    odds: 41,
+    countdown: '182d 6h',
+    doomPercent: 67,
+    totalStake: 770000,
+    trending: 'up',
   },
   {
     id: 3,
     title: 'Climate Tipping Point',
     category: 'Climate',
-    countdown: '1,460 days',
-    doomStake: 89000,
-    lifeStake: 156000,
-    odds: 36,
+    countdown: '1,460d',
+    doomPercent: 36,
+    totalStake: 245000,
+    trending: 'down',
+  },
+  {
+    id: 4,
+    title: 'Nuclear Incident',
+    category: 'War',
+    countdown: '365d',
+    doomPercent: 23,
+    totalStake: 156000,
+    trending: 'down',
   },
 ]
 
+const categories = ['All', 'Technology', 'Economic', 'Climate', 'War', 'Natural', 'Social']
+
 export function EventsPage() {
   return (
-    <div className="flex flex-col h-full">
-      <PageHeader
-        title="Events"
-        subtitle="The countdowns"
-        action={
-          <button className="p-2 rounded-full bg-neutral-700 hover:bg-neutral-600 transition-colors">
-            <Plus size={20} />
-          </button>
-        }
-      />
+    <div className="flex flex-col min-h-full">
+      <PageHeader title="Search" />
 
-      <div className="flex-1 px-4 py-4 space-y-4">
-        {/* Filter tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {['All', 'Technology', 'Economic', 'Climate', 'War', 'Natural'].map((cat) => (
-            <button
-              key={cat}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                cat === 'All'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+      {/* Search bar */}
+      <div className="px-4 py-2">
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1a1a1a] rounded-xl">
+          <Search size={18} className="text-[#777]" />
+          <input
+            type="text"
+            placeholder="Search events"
+            className="flex-1 bg-transparent text-[15px] text-white placeholder-[#777] outline-none"
+          />
         </div>
+      </div>
 
-        {/* Event cards */}
-        {mockEvents.map((event) => (
-          <article
-            key={event.id}
-            className="p-4 rounded-xl bg-neutral-900 border border-neutral-800"
+      {/* Categories */}
+      <div className="flex gap-2 px-4 py-2 overflow-x-auto">
+        {categories.map((cat, idx) => (
+          <button
+            key={cat}
+            className={`px-4 py-1.5 rounded-full text-[14px] font-medium whitespace-nowrap transition-colors ${
+              idx === 0
+                ? 'bg-white text-black'
+                : 'bg-[#1a1a1a] text-[#777] hover:bg-[#333]'
+            }`}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400">
-                  {event.category}
-                </span>
-                <h3 className="font-semibold text-lg text-neutral-100 mt-1">
-                  {event.title}
-                </h3>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1 text-red-500">
-                  <Clock size={14} />
-                  <span className="font-mono font-bold">{event.countdown}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Odds bar */}
-            <div className="mb-3">
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-red-400 flex items-center gap-1">
-                  <TrendingDown size={12} />
-                  Doom {event.odds}%
-                </span>
-                <span className="text-green-400 flex items-center gap-1">
-                  Life {100 - event.odds}%
-                  <TrendingUp size={12} />
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-red-600 to-red-500"
-                  style={{ width: `${event.odds}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Stakes */}
-            <div className="flex gap-2">
-              <button className="flex-1 py-2 rounded-lg bg-red-950/50 border border-red-900 text-red-400 text-sm font-medium hover:bg-red-950 transition-colors">
-                Bet Doom
-              </button>
-              <button className="flex-1 py-2 rounded-lg bg-green-950/50 border border-green-900 text-green-400 text-sm font-medium hover:bg-green-950 transition-colors">
-                Bet Life
-              </button>
-            </div>
-          </article>
+            {cat}
+          </button>
         ))}
+      </div>
+
+      {/* Section header */}
+      <div className="px-4 pt-4 pb-2">
+        <h2 className="text-[15px] font-bold text-white">Trending Events</h2>
+      </div>
+
+      {/* Events list */}
+      <div className="divide-y divide-[#333]">
+        {mockEvents.map((event) => (
+          <button
+            key={event.id}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#111] transition-colors text-left"
+          >
+            {/* Countdown badge */}
+            <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-[#1a1a1a]">
+              <Clock size={14} className="text-[#ff3040] mb-0.5" />
+              <span className="text-[11px] font-mono font-bold text-white">
+                {event.countdown.split(' ')[0]}
+              </span>
+            </div>
+
+            {/* Event info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] text-[#777]">{event.category}</span>
+                {event.trending === 'up' ? (
+                  <TrendingUp size={12} className="text-[#ff3040]" />
+                ) : (
+                  <TrendingDown size={12} className="text-[#00ba7c]" />
+                )}
+              </div>
+              <h3 className="text-[15px] font-semibold text-white truncate">
+                {event.title}
+              </h3>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-1.5 rounded-full bg-[#333] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ff3040] to-[#ff6060]"
+                    style={{ width: `${event.doomPercent}%` }}
+                  />
+                </div>
+                <span className="text-[12px] text-[#777]">
+                  {event.doomPercent}%
+                </span>
+              </div>
+            </div>
+
+            {/* Stake amount */}
+            <div className="text-right">
+              <p className="text-[12px] text-[#777]">Staked</p>
+              <p className="text-[14px] font-semibold text-white">
+                ${(event.totalStake / 1000).toFixed(0)}k
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Create event CTA */}
+      <div className="px-4 py-4">
+        <button className="w-full py-3 rounded-xl bg-[#1a1a1a] text-[15px] font-semibold text-white hover:bg-[#333] transition-colors">
+          + Create Prediction
+        </button>
       </div>
     </div>
   )

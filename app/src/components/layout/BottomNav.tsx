@@ -1,32 +1,31 @@
 import { NavLink } from 'react-router-dom'
-import { Flame, Heart, Clock, Trophy, User } from 'lucide-react'
+import { Home, Search, PenSquare, Heart, User } from 'lucide-react'
 
 const navItems = [
-  { to: '/', icon: Flame, label: 'Doom' },
-  { to: '/life', icon: Heart, label: 'Life' },
-  { to: '/events', icon: Clock, label: 'Events' },
-  { to: '/leaderboard', icon: Trophy, label: 'Ranks' },
-  { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/', icon: Home },
+  { to: '/events', icon: Search },
+  { to: '/compose', icon: PenSquare },
+  { to: '/life', icon: Heart },
+  { to: '/profile', icon: User },
 ]
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-neutral-900 border-t border-neutral-800 pb-safe">
-      <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-        {navItems.map(({ to, icon: Icon, label }) => (
+    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50">
+      <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
+        {navItems.map(({ to, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                isActive
-                  ? 'text-red-500'
-                  : 'text-neutral-400 hover:text-neutral-200'
+              `flex items-center justify-center w-12 h-12 transition-colors ${
+                isActive ? 'text-white' : 'text-[#777]'
               }`
             }
           >
-            <Icon size={22} />
-            <span className="text-xs font-medium">{label}</span>
+            {({ isActive }) => (
+              <Icon size={26} strokeWidth={isActive ? 2.5 : 1.5} />
+            )}
           </NavLink>
         ))}
       </div>

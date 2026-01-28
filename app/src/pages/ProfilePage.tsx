@@ -166,6 +166,7 @@ export function ProfilePage() {
             {userPosts.map((post) => (
               <ThreadPost
                 key={post.id}
+                postId={post.id}
                 author={post.author}
                 content={post.content}
                 timestamp={formatRelativeTime(post.createdAt)}
@@ -173,6 +174,7 @@ export function ProfilePage() {
                 replies={post.replies}
                 variant={post.variant}
                 isLiked={post.likedBy.includes(userId)}
+                onClick={() => navigate(`/post/${post.id}`)}
               />
             ))}
           </div>

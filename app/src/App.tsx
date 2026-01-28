@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { WalletProvider } from '@/providers/WalletProvider'
 import { Loader2 } from 'lucide-react'
+import { useThemeStore } from '@/store'
 import './index.css'
 
 // Lazy load page components for code splitting
@@ -16,6 +18,7 @@ const CreateEventPage = lazy(() => import('@/pages/CreateEventPage').then(m => (
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ default: m.PostDetailPage })))
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
+const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default: m.SearchPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -27,9 +30,17 @@ function PageLoader() {
 }
 
 function App() {
+  const initTheme = useThemeStore((state) => state.initTheme)
+
+  // Initialize theme on app load
+  useEffect(() => {
+    initTheme()
+  }, [initTheme])
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <WalletProvider>
+      <BrowserRouter>
+        <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={
             <Suspense fallback={<PageLoader />}>
@@ -91,9 +102,20 @@ function App() {
               <LifeTimelinePage />
             </Suspense>
           } />
+          <Route path="/search" element={
+            <Suspense fallback={<PageLoader />}>
+              <SearchPage />
+            </Suspense>
+          } />
+          <Route path="/profile/:username" element={
+            <Suspense fallback={<PageLoader />}>
+              <ProfilePage />
+            </Suspense>
+          } />
         </Route>
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </WalletProvider>
   )
 }
 

@@ -57,6 +57,16 @@ export interface Post {
   likedBy: ID[]
   /** Has current user liked this post */
   isLiked?: boolean
+  /** If this is a repost, the original post ID */
+  originalPostId?: ID
+  /** If this is a quote repost, the quote content */
+  quoteContent?: string
+  /** User who reposted (for attribution) */
+  repostedBy?: Author
+  /** Timestamp of the repost action */
+  repostedAt?: Timestamp
+  /** IDs of users who reposted this post */
+  repostedByUsers?: ID[]
 }
 
 /**
@@ -149,3 +159,21 @@ export interface LeaderboardEntry {
  * Leaderboard category
  */
 export type LeaderboardCategory = 'doomer' | 'life' | 'prepper' | 'salvation' | 'preventer'
+
+/**
+ * Comment on a post
+ */
+export interface Comment {
+  id: ID
+  postId: ID
+  authorUsername: string
+  authorAvatar?: string
+  content: string
+  createdAt: Timestamp
+  likes: number
+  likedBy: ID[]
+  /** Whether comment is pending server confirmation */
+  isPending?: boolean
+  /** Error message if comment failed */
+  error?: string
+}

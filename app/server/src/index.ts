@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { createServer } from 'http'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -7,6 +8,7 @@ import { logger } from './lib/logger'
 import { initSentry, captureError } from './lib/sentry'
 import { closeDatabase } from './db'
 import { requestLogger } from './middleware/logger'
+import { initializeWebSocket, getConnectionStats } from './lib/websocket'
 import authRouter from './routes/auth'
 import postsRouter from './routes/posts'
 import usersRouter from './routes/users'
@@ -39,9 +41,39 @@ app.notFound((c) => c.json({ error: 'Not found' }, 404))
 
 const port = parseInt(process.env.PORT || '3001', 10)
 
+// Create HTTP server and attach WebSocket
+const httpServer = createServer(async (req, res) => {
+  // Let Hono handle HTTP requests
+  const response = await app.fetch(
+    new Request(`http://localhost:${port}${req.url}`, {
+      method: req.method,
+      headers: req.headers as HeadersInit,
+    })
+  )
+
+  res.statusCode = response.status
+  response.headers.forEach((value, key) => {
+    res.setHeader(key, value)
+  })
+
+  const body = await response.text()
+  res.end(body)
+})
+
+// Initialize WebSocket
+const io = initializeWebSocket(httpServer)
+
+// Add WebSocket stats to health endpoint
+app.get('/ws/stats', async (c) => {
+  const stats = await getConnectionStats()
+  return c.json(stats)
+})
+
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Received shutdown signal')
   try {
+    // Close WebSocket connections
+    io.close()
     await closeDatabase()
     logger.info('Graceful shutdown completed')
     process.exit(0)
@@ -54,7 +86,10 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))
 
-logger.info({ port }, 'Starting server...')
-serve({ fetch: app.fetch, port }, (info) => logger.info({ port: info.port }, 'Server running'))
+logger.info({ port }, 'Starting server with WebSocket support...')
+httpServer.listen(port, () => {
+  logger.info({ port }, 'Server running with WebSocket support')
+})
 
+export { io }
 export default app

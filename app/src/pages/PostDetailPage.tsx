@@ -12,17 +12,9 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send, UserPlus, UserCheck } from 'lucide-react'
 import { ShareModal } from '@/components/ui/ShareModal'
-import { usePostsStore, useUserStore } from '@/store'
+import { usePostsStore, useUserStore, useCommentsStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
-
-interface Comment {
-  id: string
-  authorUsername: string
-  content: string
-  createdAt: number
-  likes: number
-}
 
 export function PostDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -38,26 +30,12 @@ export function PostDetailPage() {
   const followUser = useUserStore((state) => state.followUser)
   const unfollowUser = useUserStore((state) => state.unfollowUser)
 
-  // Capture initial timestamp once to avoid Date.now() during render
-  const [initialTime] = useState(() => Date.now())
+  // Comments store
+  const comments = useCommentsStore((state) => state.getCommentsForPost(postId || ''))
+  const addComment = useCommentsStore((state) => state.addComment)
+  const likeComment = useCommentsStore((state) => state.likeComment)
+  const unlikeComment = useCommentsStore((state) => state.unlikeComment)
 
-  // Local state for comments (would be in store in real app)
-  const [comments, setComments] = useState<Comment[]>(() => [
-    {
-      id: '1',
-      authorUsername: 'skeptic_observer',
-      content: 'This is exactly what I\'ve been thinking. The signs are everywhere.',
-      createdAt: initialTime - 30 * 60 * 1000,
-      likes: 12,
-    },
-    {
-      id: '2',
-      authorUsername: 'hopeful_one',
-      content: 'I disagree. We\'ve been through worse and survived.',
-      createdAt: initialTime - 15 * 60 * 1000,
-      likes: 8,
-    },
-  ])
   const [newComment, setNewComment] = useState('')
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -90,17 +68,8 @@ export function PostDetailPage() {
   }
 
   const handleAddComment = () => {
-    if (!newComment.trim()) return
-
-    const comment: Comment = {
-      id: Date.now().toString(),
-      authorUsername: author.username,
-      content: newComment.trim(),
-      createdAt: Date.now(),
-      likes: 0,
-    }
-
-    setComments([...comments, comment])
+    if (!newComment.trim() || !postId) return
+    addComment(postId, author.username, newComment.trim())
     setNewComment('')
   }
 
@@ -231,14 +200,33 @@ export function PostDetailPage() {
                   </div>
                   <p className="text-[14px] text-[#ccc]">{comment.content}</p>
                   <div className="flex items-center gap-4 mt-2">
-                    <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#ff3040]">
-                      <Heart size={14} />
+                    <button
+                      onClick={() => {
+                        if (comment.likedBy?.includes(userId)) {
+                          unlikeComment(comment.id, userId)
+                        } else {
+                          likeComment(comment.id, userId)
+                        }
+                      }}
+                      className={`flex items-center gap-1 text-[12px] transition-colors ${
+                        comment.likedBy?.includes(userId)
+                          ? 'text-[#ff3040]'
+                          : 'text-[#777] hover:text-[#ff3040]'
+                      }`}
+                    >
+                      <Heart size={14} fill={comment.likedBy?.includes(userId) ? '#ff3040' : 'none'} />
                       {comment.likes}
                     </button>
                     <button className="flex items-center gap-1 text-[12px] text-[#777] hover:text-[#3b82f6]">
                       <MessageCircle size={14} />
                       Reply
                     </button>
+                    {comment.isPending && (
+                      <span className="text-[10px] text-[#555]">Sending...</span>
+                    )}
+                    {comment.error && (
+                      <span className="text-[10px] text-[#ff3040]">{comment.error}</span>
+                    )}
                   </div>
                 </div>
               </div>

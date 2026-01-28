@@ -10,24 +10,24 @@
  *
  * Navigation structure:
  * - Home (/) - Doom scroll feed
- * - Search (/events) - Event/prediction search
+ * - Discover (/discover) - Trending and discovery
  * - Compose (/compose) - Create new post
  * - Activity (/life) - Life feed & notifications
  * - Profile (/profile) - User profile
  */
 
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, Search, PenSquare, Heart, User } from 'lucide-react'
+import { Home, Compass, PenSquare, Heart, User } from 'lucide-react'
 import { usePostsStore, useEventsStore } from '@/store'
 import { useMemo, useEffect, useState, useRef } from 'react'
 
 /** Navigation items configuration with accessibility labels */
 const navItems = [
-  { to: '/', icon: Home, notifyKey: 'doom' as const, label: 'Home feed' },
-  { to: '/events', icon: Search, notifyKey: 'events' as const, label: 'Search events' },
-  { to: '/compose', icon: PenSquare, notifyKey: null, label: 'Create new post' },
-  { to: '/life', icon: Heart, notifyKey: 'life' as const, label: 'Life feed' },
-  { to: '/profile', icon: User, notifyKey: null, label: 'Your profile' },
+  { to: '/', icon: Home, notifyKey: 'doom' as const },
+  { to: '/discover', icon: Compass, notifyKey: 'discover' as const },
+  { to: '/compose', icon: PenSquare, notifyKey: null },
+  { to: '/life', icon: Heart, notifyKey: 'life' as const },
+  { to: '/profile', icon: User, notifyKey: null },
 ]
 
 export function BottomNav() {
@@ -47,7 +47,7 @@ export function BottomNav() {
 
   // Calculate if there are new items
   const hasNewContent = useMemo(() => {
-    const result: Record<string, boolean> = { doom: false, life: false, events: false }
+    const result: Record<string, boolean> = { doom: false, life: false, events: false, discover: false }
 
     // Check doom feed
     const newestDoom = doomFeed.length > 0 ? allPosts[doomFeed[0]]?.createdAt : 0
@@ -57,10 +57,11 @@ export function BottomNav() {
     const newestLife = lifeFeed.length > 0 ? allPosts[lifeFeed[0]]?.createdAt : 0
     result.life = newestLife > (lastViewed.life || 0)
 
-    // Check events
+    // Check events (also used for discover notification)
     const eventTimes = Object.values(events).map((e) => e.createdAt)
     const newestEvent = eventTimes.length > 0 ? Math.max(...eventTimes) : 0
     result.events = newestEvent > (lastViewed.events || 0)
+    result.discover = result.events || result.doom // Show dot if new content available
 
     return result
   }, [doomFeed, lifeFeed, allPosts, events, lastViewed])
@@ -76,6 +77,7 @@ export function BottomNav() {
     if (path === '/') key = 'doom'
     else if (path === '/life') key = 'life'
     else if (path === '/events' || path.startsWith('/events/')) key = 'events'
+    else if (path === '/discover' || path === '/trending') key = 'discover'
 
     if (key) {
       pendingUpdate.current = key
@@ -95,11 +97,7 @@ export function BottomNav() {
   }, [location.pathname])
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50"
-      role="navigation"
-      aria-label="Main navigation"
-    >
+    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50 lg:hidden">
       <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
         {navItems.map(({ to, icon: Icon, notifyKey, label }) => {
           const isCurrentPage = location.pathname === to

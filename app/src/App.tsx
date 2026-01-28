@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { WalletProvider } from '@/providers/WalletProvider'
 import { Loader2 } from 'lucide-react'
 import { useThemeStore } from '@/store'
 import './index.css'
@@ -18,7 +18,8 @@ const CreateEventPage = lazy(() => import('@/pages/CreateEventPage').then(m => (
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ default: m.PostDetailPage })))
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
-const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
+const TrendingPage = lazy(() => import('@/pages/TrendingPage').then(m => ({ default: m.TrendingPage })))
+const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -38,80 +39,84 @@ function App() {
   }, [initTheme])
 
   return (
-    <ErrorBoundary>
+    <WalletProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={
-              <Suspense fallback={<PageLoader />}>
-                <DoomScrollPage />
-              </Suspense>
-            } />
-            <Route path="/life" element={
-              <Suspense fallback={<PageLoader />}>
-                <LifePage />
-              </Suspense>
-            } />
-            <Route path="/events" element={
-              <Suspense fallback={<PageLoader />}>
-                <EventsPage />
-              </Suspense>
-            } />
-            <Route path="/leaderboard" element={
-              <Suspense fallback={<PageLoader />}>
-                <LeaderboardPage />
-              </Suspense>
-            } />
-            <Route path="/profile" element={
-              <Suspense fallback={<PageLoader />}>
-                <ProfilePage />
-              </Suspense>
-            } />
-            <Route path="/compose" element={
-              <Suspense fallback={<PageLoader />}>
-                <ComposePage />
-              </Suspense>
-            } />
-            <Route path="/events/:eventId" element={
-              <Suspense fallback={<PageLoader />}>
-                <EventDetailPage />
-              </Suspense>
-            } />
-            <Route path="/events/create" element={
-              <Suspense fallback={<PageLoader />}>
-                <CreateEventPage />
-              </Suspense>
-            } />
-            <Route path="/settings" element={
-              <Suspense fallback={<PageLoader />}>
-                <SettingsPage />
-              </Suspense>
-            } />
-            <Route path="/post/:postId" element={
-              <Suspense fallback={<PageLoader />}>
-                <PostDetailPage />
-              </Suspense>
-            } />
-            <Route path="/timeline" element={
-              <Suspense fallback={<PageLoader />}>
-                <LifeTimelinePage />
-              </Suspense>
-            } />
-            <Route path="/timeline/:username" element={
-              <Suspense fallback={<PageLoader />}>
-                <LifeTimelinePage />
-              </Suspense>
-            } />
-            {/* 404 Not Found - catch all unmatched routes */}
-            <Route path="*" element={
-              <Suspense fallback={<PageLoader />}>
-                <NotFoundPage />
-              </Suspense>
-            } />
-          </Route>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={
+            <Suspense fallback={<PageLoader />}>
+              <DoomScrollPage />
+            </Suspense>
+          } />
+          <Route path="/life" element={
+            <Suspense fallback={<PageLoader />}>
+              <LifePage />
+            </Suspense>
+          } />
+          <Route path="/events" element={
+            <Suspense fallback={<PageLoader />}>
+              <EventsPage />
+            </Suspense>
+          } />
+          <Route path="/leaderboard" element={
+            <Suspense fallback={<PageLoader />}>
+              <LeaderboardPage />
+            </Suspense>
+          } />
+          <Route path="/profile" element={
+            <Suspense fallback={<PageLoader />}>
+              <ProfilePage />
+            </Suspense>
+          } />
+          <Route path="/compose" element={
+            <Suspense fallback={<PageLoader />}>
+              <ComposePage />
+            </Suspense>
+          } />
+          <Route path="/events/:eventId" element={
+            <Suspense fallback={<PageLoader />}>
+              <EventDetailPage />
+            </Suspense>
+          } />
+          <Route path="/events/create" element={
+            <Suspense fallback={<PageLoader />}>
+              <CreateEventPage />
+            </Suspense>
+          } />
+          <Route path="/settings" element={
+            <Suspense fallback={<PageLoader />}>
+              <SettingsPage />
+            </Suspense>
+          } />
+          <Route path="/post/:postId" element={
+            <Suspense fallback={<PageLoader />}>
+              <PostDetailPage />
+            </Suspense>
+          } />
+          <Route path="/timeline" element={
+            <Suspense fallback={<PageLoader />}>
+              <LifeTimelinePage />
+            </Suspense>
+          } />
+          <Route path="/timeline/:username" element={
+            <Suspense fallback={<PageLoader />}>
+              <LifeTimelinePage />
+            </Suspense>
+          } />
+          <Route path="/trending" element={
+            <Suspense fallback={<PageLoader />}>
+              <TrendingPage />
+            </Suspense>
+          } />
+          <Route path="/discover" element={
+            <Suspense fallback={<PageLoader />}>
+              <DiscoverPage />
+            </Suspense>
+          } />
+        </Route>
         </Routes>
       </BrowserRouter>
-    </ErrorBoundary>
+    </WalletProvider>
   )
 }
 

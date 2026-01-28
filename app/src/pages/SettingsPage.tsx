@@ -100,7 +100,6 @@ export function SettingsPage() {
   const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && useThemeStore.getState().resolvedTheme === 'dark')
 
   // Local state for toggles
-  const [notifications, setNotifications] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showBalance, setShowBalance] = useState(true)
   const [showBlockedList, setShowBlockedList] = useState(false)
@@ -149,9 +148,9 @@ export function SettingsPage() {
         <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<Bell size={20} />}
-            label="Push notifications"
-            description="Get notified about bets and events"
-            rightElement={<Toggle enabled={notifications} onChange={setNotifications} />}
+            label="Notification preferences"
+            description="Manage notification types and quiet hours"
+            onClick={() => navigate('/settings/notifications')}
           />
           <SettingItem
             icon={<Volume2 size={20} />}
@@ -281,6 +280,13 @@ export function SettingsPage() {
             icon={<HelpCircle size={20} />}
             label="Help & FAQ"
             description="Get help with Doomsday"
+            onClick={() => navigate('/help')}
+          />
+          <SettingItem
+            icon={<Shield size={20} />}
+            label="Responsible Gambling"
+            description="Betting limits, self-exclusion, resources"
+            onClick={() => navigate('/settings/gambling')}
           />
         </div>
       </div>

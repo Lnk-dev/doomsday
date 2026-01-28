@@ -42,6 +42,8 @@ interface ThreadPostProps {
   onLike?: () => void
   /** Callback when post content is clicked */
   onClick?: () => void
+  /** Callback when share button is clicked */
+  onShare?: () => void
 }
 
 export function ThreadPost({
@@ -56,6 +58,7 @@ export function ThreadPost({
   isLiked = false,
   onLike,
   onClick,
+  onShare,
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
@@ -142,7 +145,10 @@ export function ThreadPost({
             />
           </button>
           {/* Share button */}
-          <button className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group">
+          <button
+            onClick={onShare}
+            className="p-2 hover:bg-[#1a1a1a] rounded-full transition-colors group"
+          >
             <Send
               size={20}
               className="text-[#777] group-hover:text-white transition-colors"

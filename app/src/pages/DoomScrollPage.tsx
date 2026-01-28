@@ -13,6 +13,7 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
+import { ShareModal } from '@/components/ui/ShareModal'
 import { Flame, Clock, TrendingUp } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
@@ -35,6 +36,7 @@ export function DoomScrollPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
   const [sortBy, setSortBy] = useState<SortOption>('hot')
+  const [sharePost, setSharePost] = useState<Post | null>(null)
 
   // Get raw data from store (stable references)
   const allPosts = usePostsStore((state) => state.posts)
@@ -143,6 +145,7 @@ export function DoomScrollPage() {
             isLiked={post.likedBy.includes(userId)}
             onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
             onClick={() => navigate(`/post/${post.id}`)}
+            onShare={() => setSharePost(post)}
           />
         ))}
       </div>
@@ -154,6 +157,15 @@ export function DoomScrollPage() {
             No doom to scroll yet.
           </p>
         </div>
+      )}
+
+      {/* Share modal */}
+      {sharePost && (
+        <ShareModal
+          postId={sharePost.id}
+          content={sharePost.content}
+          onClose={() => setSharePost(null)}
+        />
       )}
     </div>
   )

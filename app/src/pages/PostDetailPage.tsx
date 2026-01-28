@@ -11,6 +11,7 @@
 
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Heart, MessageCircle, Repeat2, Share, Send } from 'lucide-react'
+import { ShareModal } from '@/components/ui/ShareModal'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
@@ -52,6 +53,7 @@ export function PostDetailPage() {
     },
   ])
   const [newComment, setNewComment] = useState('')
+  const [showShareModal, setShowShareModal] = useState(false)
 
   const post = postId ? posts[postId] : undefined
 
@@ -161,7 +163,10 @@ export function PostDetailPage() {
           <button className="p-2 rounded-full text-[#777] hover:text-[#00ba7c] transition-colors">
             <Repeat2 size={22} />
           </button>
-          <button className="p-2 rounded-full text-[#777] hover:text-white transition-colors">
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="p-2 rounded-full text-[#777] hover:text-white transition-colors"
+          >
             <Share size={22} />
           </button>
         </div>
@@ -234,6 +239,15 @@ export function PostDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Share modal */}
+      {showShareModal && (
+        <ShareModal
+          postId={post.id}
+          content={post.content}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   )
 }

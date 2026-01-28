@@ -12,6 +12,7 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
+import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
 import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
 import { useUserStore, usePostsStore, useEventsStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
@@ -24,9 +25,12 @@ export function ProfilePage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   // User store
   const author = useUserStore((state) => state.author)
+  const displayName = useUserStore((state) => state.displayName)
+  const bio = useUserStore((state) => state.bio)
   const doomBalance = useUserStore((state) => state.doomBalance)
   const lifeBalance = useUserStore((state) => state.lifeBalance)
   const daysLiving = useUserStore((state) => state.daysLiving)
@@ -77,16 +81,22 @@ export function ProfilePage() {
       <div className="px-4 py-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h2 className="text-[22px] font-bold text-white capitalize">
-              {author.username.replace('_', ' ')}
+            <h2 className="text-[22px] font-bold text-white">
+              {displayName || author.username}
             </h2>
             <p className="text-[15px] text-[#777]">@{author.username}</p>
           </div>
-          <div className="w-16 h-16 rounded-full bg-[#333]" />
+          <div className="w-16 h-16 rounded-full bg-[#333] flex items-center justify-center overflow-hidden">
+            {author.avatar ? (
+              <img src={author.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl text-[#777]">{author.username[0]?.toUpperCase()}</span>
+            )}
+          </div>
         </div>
 
         <p className="text-[15px] text-white mt-3">
-          Watching the world. Waiting.
+          {bio || 'Watching the world. Waiting.'}
         </p>
 
         <div className="flex items-center gap-4 mt-3 text-[15px] text-[#777]">
@@ -97,7 +107,10 @@ export function ProfilePage() {
 
         {/* Action buttons */}
         <div className="flex gap-2 mt-4">
-          <button className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors">
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
+          >
             Edit profile
           </button>
           <button
@@ -324,6 +337,11 @@ export function ProfilePage() {
           }}
           onClose={() => setShowShareModal(false)}
         />
+      )}
+
+      {/* Profile edit modal */}
+      {showEditModal && (
+        <ProfileEditModal onClose={() => setShowEditModal(false)} />
       )}
     </div>
   )

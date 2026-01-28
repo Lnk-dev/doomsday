@@ -22,6 +22,7 @@ const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m =>
 const TrendingPage = lazy(() => import('@/pages/TrendingPage').then(m => ({ default: m.TrendingPage })))
 const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })))
 const NotFoundPage = lazy(() => import('@/components/error/NotFound').then(m => ({ default: m.NotFoundPage })))
+const TransactionsPage = lazy(() => import('@/pages/TransactionsPage').then(m => ({ default: m.TransactionsPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -114,6 +115,11 @@ function App() {
           <Route path="/discover" element={
             <Suspense fallback={<PageLoader />}>
               <DiscoverPage />
+            </Suspense>
+          } />
+          <Route path="/transactions" element={
+            <Suspense fallback={<PageLoader />}>
+              <TransactionsPage />
             </Suspense>
           } />
           <Route path="*" element={

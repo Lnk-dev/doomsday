@@ -91,18 +91,23 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="donation-modal-title"
+    >
       <div
         className="w-full max-w-lg bg-[#111] rounded-t-3xl animate-slide-up"
         style={{ animation: 'slideUp 0.3s ease-out' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-[#333]">
-          <button onClick={onClose}>
-            <X size={24} className="text-white" />
+          <button onClick={onClose} aria-label="Close donation dialog">
+            <X size={24} className="text-white" aria-hidden="true" />
           </button>
-          <h2 className="text-[17px] font-semibold text-white">Send Life</h2>
-          <div className="w-6" /> {/* Spacer for centering */}
+          <h2 id="donation-modal-title" className="text-[17px] font-semibold text-white">Send Life</h2>
+          <div className="w-6" aria-hidden="true" /> {/* Spacer for centering */}
         </div>
 
         {showSuccess ? (
@@ -125,7 +130,7 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
                   @{recipient.username}
                 </p>
                 <p className="text-[13px] text-[#00ba7c] flex items-center gap-1">
-                  <Sparkles size={12} />
+                  <Sparkles size={12} aria-hidden="true" />
                   Will receive $LIFE
                 </p>
               </div>
@@ -136,30 +141,23 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
               amountError ? 'border border-[#ff3040]/50' : ''
             }`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[13px] text-[#777]">Amount</span>
-                <span className="text-[13px] text-[#777]">
+                <label htmlFor="donation-amount" className="text-[13px] text-[#777]">Amount</label>
+                <span className="text-[13px] text-[#777]" aria-live="polite">
                   Balance: {formatNumber(doomBalance)} $DOOM
                 </span>
               </div>
-              <FormField
-                error={amountError}
-                touched={touched}
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={amount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    onBlur={() => setTouched(true)}
-                    placeholder="0"
-                    className={`flex-1 bg-transparent text-[28px] font-bold text-white outline-none ${
-                      amountError ? 'text-[#ff3040]' : ''
-                    }`}
-                  />
-                  <span className="text-[15px] text-[#00ba7c]">$LIFE</span>
-                </div>
-              </FormField>
+              <div className="flex items-center gap-2">
+                <input
+                  id="donation-amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0"
+                  aria-describedby="donation-info"
+                  className="flex-1 bg-transparent text-[28px] font-bold text-white outline-none"
+                />
+                <span className="text-[15px] text-[#00ba7c]" aria-hidden="true">$LIFE</span>
+              </div>
 
               {/* Quick amounts */}
               <div className="flex gap-2 mt-3">
@@ -223,7 +221,7 @@ export function DonationModal({ recipient, onClose, onSuccess }: DonationModalPr
             </button>
 
             {/* Info */}
-            <p className="text-[12px] text-[#555] text-center mt-4">
+            <p id="donation-info" className="text-[12px] text-[#555] text-center mt-4">
               $LIFE donations support creators in the life feed
             </p>
           </div>

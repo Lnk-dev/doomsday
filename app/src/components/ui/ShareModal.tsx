@@ -89,28 +89,35 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
       <div className="relative w-full max-w-lg bg-[#1a1a1a] rounded-t-3xl animate-slide-up">
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-[#333]" />
+          <div className="w-10 h-1 rounded-full bg-[#333]" aria-hidden="true" />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-4">
-          <h2 className="text-[17px] font-semibold text-white">Share post</h2>
+          <h2 id="share-modal-title" className="text-[17px] font-semibold text-white">Share post</h2>
           <button
             onClick={onClose}
             className="p-2 -mr-2 rounded-full hover:bg-[#333] transition-colors"
+            aria-label="Close share dialog"
           >
-            <X size={20} className="text-[#777]" />
+            <X size={20} className="text-[#777]" aria-hidden="true" />
           </button>
         </div>
 
@@ -138,7 +145,7 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
                     option.highlight ? 'bg-[#00ba7c30]' : 'bg-[#333]'
                   }`}
                 >
-                  <Icon size={22} />
+                  <Icon size={22} aria-hidden="true" />
                 </div>
                 <span className="text-[12px] font-medium">{option.label}</span>
               </button>

@@ -9,16 +9,17 @@
  * - Sort options (Hot / New / Top)
  * - Infinite scroll of doom posts
  * - Real-time like interactions
+ * - Loading skeleton states
  */
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
-import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
-import { Flame, Clock, TrendingUp, UserPlus, Search } from 'lucide-react'
-import { usePostsStore, useUserStore } from '@/store'
+import { FeedSkeleton } from '@/components/ui/Skeleton'
+import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
+import { usePostsStore, useUserStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Post } from '@/types'
 
@@ -40,6 +41,24 @@ export function DoomScrollPage() {
   const [sharePost, setSharePost] = useState<Post | null>(null)
   const [quotePost, setQuotePost] = useState<Post | null>(null)
 
+  // Loading state
+  const isLoading = useLoadingStore((state) => state.isLoading('posts'))
+  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
+
+  // Simulate initial loading on mount
+  useEffect(() => {
+    simulateLoading('posts', 1000)
+  }, [simulateLoading])
+
+  // Loading state
+  const isLoading = useLoadingStore((state) => state.isLoading('posts'))
+  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
+
+  // Simulate initial loading on mount
+  useEffect(() => {
+    simulateLoading('posts', 1000)
+  }, [simulateLoading])
+
   // Get raw data from store (stable references)
   const allPosts = usePostsStore((state) => state.posts)
   const doomFeed = usePostsStore((state) => state.doomFeed)
@@ -52,6 +71,11 @@ export function DoomScrollPage() {
   const author = useUserStore((state) => state.author)
   const following = useUserStore((state) => state.following)
   const isHidden = useUserStore((state) => state.isHidden)
+
+  // Bookmarks store
+  const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
 
   // Compute feed from raw data
   const posts = useMemo(() => {
@@ -107,6 +131,15 @@ export function DoomScrollPage() {
   const handleQuoteRepost = (content: string) => {
     if (quotePost) {
       quoteRepost(quotePost.id, userId, author, content)
+    }
+  }
+
+  /** Handle bookmark toggle */
+  const handleBookmark = (postId: string) => {
+    if (isBookmarked(postId)) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
     }
   }
 
@@ -176,46 +209,36 @@ export function DoomScrollPage() {
         })}
       </div>
 
-      {/* Posts feed */}
-      <div className="divide-y divide-[#333]">
-        {sortedPosts.map((post) => {
-          const originalPost = post.originalPostId ? allPosts[post.originalPostId] : null
-          const isQuoteRepostPost = Boolean(post.quoteContent && post.originalPostId)
-          return (
+      {/* Posts feed - show skeleton while loading */}
+      {isLoading ? (
+        <FeedSkeleton count={5} />
+      ) : (
+        <div className="divide-y divide-[#333]">
+          {sortedPosts.map((post) => (
             <ThreadPost
               key={post.id}
               postId={post.id}
               author={post.author}
               content={post.content}
-              timestamp={formatRelativeTime(post.repostedAt || post.createdAt)}
+              timestamp={formatRelativeTime(post.createdAt)}
               likes={post.likes}
               replies={post.replies}
-              repostCount={post.reposts}
               variant="doom"
               isLiked={post.likedBy.includes(userId)}
-              isReposted={post.repostedByUsers?.includes(userId)}
-              repostedBy={post.repostedBy}
-              originalPost={
-                isQuoteRepostPost && originalPost
-                  ? {
-                      author: originalPost.author,
-                      content: originalPost.content,
-                    }
-                  : undefined
-              }
-              isQuoteRepost={isQuoteRepostPost}
               onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
               onClick={() => navigate(`/post/${post.id}`)}
               onShare={() => setSharePost(post)}
               onRepost={() => handleRepost(post)}
               onQuoteRepost={() => setQuotePost(post)}
+              isBookmarked={isBookmarked(post.id)}
+              onBookmark={() => handleBookmark(post.id)}
             />
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Empty state */}
-      {sortedPosts.length === 0 && (
+      {!isLoading && sortedPosts.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
           {activeTab === 'following' ? (
             <>

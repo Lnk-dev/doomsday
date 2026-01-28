@@ -12,7 +12,7 @@ export function useBadgeChecker() {
   const checkEngagementBadges = useBadgesStore((state) => state.checkEngagementBadges)
   const checkStreakBadges = useBadgesStore((state) => state.checkStreakBadges)
   const checkBettingBadges = useBadgesStore((state) => state.checkBettingBadges)
-
+  
   const posts = usePostsStore((state) => state.posts)
   const author = useUserStore((state) => state.author)
 

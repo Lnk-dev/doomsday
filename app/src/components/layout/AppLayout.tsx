@@ -16,11 +16,13 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 export function AppLayout() {
   return (
     <div className="flex flex-col min-h-screen bg-black">
-      {/* Global toast notifications */}
-      <ToastContainer />
+      {/* Skip to main content link for keyboard/screen reader users */}
+      <a href="#main-content" className="skip-to-content">
+        Skip to main content
+      </a>
 
       {/* Main content area with bottom padding for nav */}
-      <main className="flex-1 pb-16 overflow-y-auto">
+      <main id="main-content" className="flex-1 pb-16 overflow-y-auto" tabIndex={-1}>
         <Outlet />
       </main>
 

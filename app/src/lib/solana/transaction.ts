@@ -118,9 +118,7 @@ export async function sendTransactionWithRetry(
       )
 
       if (confirmation.value.err) {
-        throw new Error(
-          `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-        )
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`)
       }
 
       onStatusChange('confirmed')

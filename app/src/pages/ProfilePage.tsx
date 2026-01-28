@@ -1,11 +1,13 @@
 /**
  * ProfilePage
+ * Issue #51: Add bookmark/save posts feature
  *
  * User profile displaying stats, balances, and post history.
  * Features:
  * - Token balances ($DOOM, $LIFE)
  * - Days living counter
  * - User's posts
+ * - Saved/bookmarked posts
  * - Wallet connection CTA
  */
 
@@ -13,14 +15,13 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
 import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
-import { StreakDisplay } from '@/components/ui/StreakDisplay'
-import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
-import { useUserStore, usePostsStore, useEventsStore, useStreaksStore } from '@/store'
+import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight, Bookmark } from 'lucide-react'
+import { useUserStore, usePostsStore, useEventsStore, useBookmarksStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-type ProfileTab = 'threads' | 'bets' | 'replies'
+type ProfileTab = 'threads' | 'bets' | 'replies' | 'saved'
 
 export function ProfilePage() {
   const navigate = useNavigate()
@@ -47,10 +48,39 @@ export function ProfilePage() {
   const isConnected = useUserStore((state) => state.isConnected)
   const userId = useUserStore((state) => state.userId)
 
+  // Streak store
+  const currentStreak = useStreakStore((state) => state.currentStreak)
+  const longestStreak = useStreakStore((state) => state.longestStreak)
+  const isInGracePeriod = useStreakStore((state) => state.isInGracePeriod)
+  const getNextMilestone = useStreakStore((state) => state.getNextMilestone)
+  const getClaimableMilestones = useStreakStore((state) => state.getClaimableMilestones)
+  const claimAllMilestones = useStreakStore((state) => state.claimAllMilestones)
+  const addLife = useUserStore((state) => state.addLife)
+
+  const nextMilestone = getNextMilestone()
+  const claimableMilestones = getClaimableMilestones()
+  const progressToNext = nextMilestone
+    ? Math.min((currentStreak / nextMilestone.days) * 100, 100)
+    : 100
+
+  const handleClaimRewards = () => {
+    const { total } = claimAllMilestones()
+    if (total > 0) {
+      addLife(total)
+    }
+  }
+
   // Get raw data (stable references)
   const allPosts = usePostsStore((state) => state.posts)
   const bets = useEventsStore((state) => state.bets)
   const events = useEventsStore((state) => state.events)
+
+  // Bookmarks store
+  const bookmarks = useBookmarksStore((state) => state.bookmarks)
+  const bookmarkOrder = useBookmarksStore((state) => state.bookmarkOrder)
+  const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
+  const addBookmark = useBookmarksStore((state) => state.addBookmark)
+  const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
 
   // Compute user's posts
   const userPosts = useMemo(() => {
@@ -69,10 +99,33 @@ export function ProfilePage() {
     return events[eventId]
   }, [events])
 
+  // Compute bookmarked posts
+  const bookmarkedPosts = useMemo(() => {
+    return bookmarkOrder
+      .map((bookmarkId) => {
+        const bookmark = bookmarks[bookmarkId]
+        if (!bookmark) return null
+        const post = allPosts[bookmark.postId]
+        if (!post) return null
+        return { ...post, bookmark }
+      })
+      .filter(Boolean) as (typeof allPosts[string] & { bookmark: typeof bookmarks[string] })[]
+  }, [bookmarks, bookmarkOrder, allPosts])
+
+  // Bookmark toggle handler
+  const handleBookmarkToggle = useCallback((postId: string) => {
+    if (isBookmarked(postId)) {
+      removeBookmark(postId, userId)
+    } else {
+      addBookmark(postId, userId)
+    }
+  }, [isBookmarked, addBookmark, removeBookmark, userId])
+
   const tabs: { id: ProfileTab; label: string }[] = [
     { id: 'threads', label: 'Threads' },
     { id: 'bets', label: `Bets (${userBets.length})` },
     { id: 'replies', label: 'Replies' },
+    { id: 'saved', label: `Saved (${bookmarkedPosts.length})` },
   ]
 
   return (
@@ -186,9 +239,55 @@ export function ProfilePage() {
         <ChevronRight size={20} className="text-[#00ba7c]" />
       </button>
 
-      {/* Daily Streak */}
-      <div className="mx-4 mb-4">
-        <StreakDisplay />
+      {/* Streak Card */}
+      <div className="mx-4 mb-4 p-4 rounded-2xl bg-[#1a1a1a] border border-[#333]">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
+            <Flame size={20} className="text-[#ff6b35]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-[15px] font-semibold text-white">Daily Streak</p>
+            <p className="text-[12px] text-[#777]">
+              {isInGracePeriod ? 'Grace period active!' : 'Post daily to maintain'}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 mb-3">
+          <div className="flex-1 text-center">
+            <p className="text-[24px] font-bold text-[#ff6b35]">{currentStreak}</p>
+            <p className="text-[11px] text-[#777]">Current</p>
+          </div>
+          <div className="w-px h-10 bg-[#333]" />
+          <div className="flex-1 text-center">
+            <p className="text-[24px] font-bold text-white">{longestStreak}</p>
+            <p className="text-[11px] text-[#777]">Best</p>
+          </div>
+        </div>
+        {nextMilestone && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[12px] text-[#777]">
+                Next: {nextMilestone.name} ({nextMilestone.days} days)
+              </span>
+              <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.reward} $LIFE</span>
+            </div>
+            <div className="h-2 bg-[#333] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#ff6b35] transition-all"
+                style={{ width: `${progressToNext}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {claimableMilestones.length > 0 && (
+          <button
+            onClick={handleClaimRewards}
+            className="w-full py-2 rounded-xl bg-[#ff6b35] text-white text-[14px] font-semibold flex items-center justify-center gap-2"
+          >
+            <Award size={16} />
+            Claim {claimableMilestones.length} Reward{claimableMilestones.length > 1 ? 's' : ''}
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -223,7 +322,9 @@ export function ProfilePage() {
                 replies={post.replies}
                 variant={post.variant}
                 isLiked={post.likedBy.includes(userId)}
+                isBookmarked={isBookmarked(post.id)}
                 onClick={() => navigate(`/post/${post.id}`)}
+                onBookmark={() => handleBookmarkToggle(post.id)}
               />
             ))}
           </div>
@@ -339,6 +440,47 @@ export function ProfilePage() {
             No replies yet.
           </p>
         </div>
+      )}
+
+      {activeTab === 'saved' && (
+        bookmarkedPosts.length > 0 ? (
+          <div className="divide-y divide-[#333]">
+            {bookmarkedPosts.map((post) => (
+              <div key={post.id}>
+                {/* Optional: Show bookmark note */}
+                {post.bookmark?.note && (
+                  <div className="px-4 pt-2 text-[12px] text-[#777] flex items-center gap-1">
+                    <Bookmark size={12} />
+                    <span>{post.bookmark.note}</span>
+                  </div>
+                )}
+                <ThreadPost
+                  postId={post.id}
+                  author={post.author}
+                  content={post.content}
+                  timestamp={formatRelativeTime(post.createdAt)}
+                  likes={post.likes}
+                  replies={post.replies}
+                  variant={post.variant}
+                  isLiked={post.likedBy.includes(userId)}
+                  isBookmarked={true}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  onBookmark={() => handleBookmarkToggle(post.id)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
+            <Bookmark size={48} className="text-[#333] mb-4" />
+            <p className="text-[15px] text-[#777] text-center">
+              No saved posts yet.
+            </p>
+            <p className="text-[13px] text-[#555] text-center mt-1">
+              Bookmark posts to save them for later.
+            </p>
+          </div>
+        )
       )}
 
       {/* Profile share modal */}

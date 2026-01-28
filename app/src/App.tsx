@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { WalletProvider } from '@/providers/WalletProvider'
+import { RouteErrorBoundary } from '@/components/error'
 import { Loader2 } from 'lucide-react'
 import { useThemeStore } from '@/store'
 import './index.css'
@@ -20,6 +21,7 @@ const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ 
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
 const TrendingPage = lazy(() => import('@/pages/TrendingPage').then(m => ({ default: m.TrendingPage })))
 const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })))
+const NotFoundPage = lazy(() => import('@/components/error/NotFound').then(m => ({ default: m.NotFoundPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -41,6 +43,7 @@ function App() {
   return (
     <WalletProvider>
       <BrowserRouter>
+        <RouteErrorBoundary>
         <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={
@@ -113,8 +116,14 @@ function App() {
               <DiscoverPage />
             </Suspense>
           } />
+          <Route path="*" element={
+            <Suspense fallback={<PageLoader />}>
+              <NotFoundPage />
+            </Suspense>
+          } />
         </Route>
         </Routes>
+        </RouteErrorBoundary>
       </BrowserRouter>
     </WalletProvider>
   )

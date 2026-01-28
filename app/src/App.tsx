@@ -16,6 +16,7 @@ const CreateEventPage = lazy(() => import('@/pages/CreateEventPage').then(m => (
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 const PostDetailPage = lazy(() => import('@/pages/PostDetailPage').then(m => ({ default: m.PostDetailPage })))
 const LifeTimelinePage = lazy(() => import('@/pages/LifeTimelinePage').then(m => ({ default: m.LifeTimelinePage })))
+const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default: m.SearchPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -89,6 +90,16 @@ function App() {
           <Route path="/timeline/:username" element={
             <Suspense fallback={<PageLoader />}>
               <LifeTimelinePage />
+            </Suspense>
+          } />
+          <Route path="/search" element={
+            <Suspense fallback={<PageLoader />}>
+              <SearchPage />
+            </Suspense>
+          } />
+          <Route path="/profile/:username" element={
+            <Suspense fallback={<PageLoader />}>
+              <ProfilePage />
             </Suspense>
           } />
         </Route>

@@ -53,3 +53,4 @@ export type {
   RealityCheck,
   ResponsibleGamblingState,
 } from './responsibleGambling'
+export { useStatusStore } from './status'

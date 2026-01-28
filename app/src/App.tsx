@@ -26,6 +26,7 @@ const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default:
 const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m.TermsPage })))
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })))
 const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })))
+const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -139,6 +140,11 @@ function App() {
           <Route path="/privacy" element={
             <Suspense fallback={<PageLoader />}>
               <PrivacyPage />
+            </Suspense>
+          } />
+          <Route path="/help" element={
+            <Suspense fallback={<PageLoader />}>
+              <HelpPage />
             </Suspense>
           } />
           <Route path="*" element={

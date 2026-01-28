@@ -90,7 +90,6 @@ export function PostDetailPage() {
 
   const handleAddComment = () => {
     if (!newComment.trim() || !postId) return
-
     addComment(postId, author.username, newComment.trim())
     setNewComment('')
   }

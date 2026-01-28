@@ -1,7 +1,8 @@
 /**
  * Comments Store
+ * Issue #37: Implement comment persistence
  *
- * Zustand store for managing post comments.
+ * Zustand store for managing post comments with persistence.
  * Handles:
  * - Comment CRUD operations
  * - Like/unlike functionality
@@ -12,7 +13,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ID } from '@/types'
-import { sanitizeText } from '@/lib/sanitize'
 
 /** Generate unique ID */
 const generateId = (): ID => Math.random().toString(36).substring(2, 15)
@@ -115,7 +115,7 @@ export const useCommentsStore = create<CommentsState>()(
           id: generateId(),
           postId,
           authorUsername,
-          content: sanitizeText(content),
+          content: content.trim(),
           createdAt: now(),
           likes: 0,
           likedBy: [],
@@ -143,9 +143,7 @@ export const useCommentsStore = create<CommentsState>()(
           const comment = state.comments[commentId]
           if (!comment) return state
 
-          const remainingComments = Object.fromEntries(
-            Object.entries(state.comments).filter(([id]) => id !== commentId)
-          )
+          const { [commentId]: _, ...remainingComments } = state.comments
 
           return {
             comments: remainingComments,

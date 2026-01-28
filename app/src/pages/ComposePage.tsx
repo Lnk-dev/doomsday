@@ -6,21 +6,36 @@
  * - Toggle between doom-scroll and life posts
  * - Cost indicator for life posts (costs $DOOM)
  * - Character limit with visual feedback
+ * - Form validation with error messaging
  * - Posts to store and navigates back on success
  */
 
 import { PageHeader } from '@/components/layout/PageHeader'
+import { FormField } from '@/components/ui/FormField'
 import { X, Image, Globe, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { usePostsStore, useUserStore } from '@/store'
+import { useBadgeChecker } from '@/hooks/useBadgeChecker'
+import { required, minLength, maxLength, validateField } from '@/lib/validation'
 import type { PostVariant } from '@/types'
+
+const MAX_LENGTH = 500
+const MIN_LENGTH = 1
+
+/** Content validation rules */
+const contentRules = [
+  required('Please write something to post'),
+  minLength(MIN_LENGTH, 'Post cannot be empty'),
+  maxLength(MAX_LENGTH, `Post cannot exceed ${MAX_LENGTH} characters`),
+]
 
 export function ComposePage() {
   const navigate = useNavigate()
   const [content, setContent] = useState('')
   const [postType, setPostType] = useState<PostVariant>('doom')
   const [error, setError] = useState<string | null>(null)
+  const [touched, setTouched] = useState(false)
 
   // Store hooks
   const createPost = usePostsStore((state) => state.createPost)
@@ -31,8 +46,6 @@ export function ComposePage() {
   const spendDoom = useUserStore((state) => state.spendDoom)
   const incrementLifePosts = useUserStore((state) => state.incrementLifePosts)
 
-  const maxLength = 500
-
   // Compute life post cost
   const lifePostCost = useMemo(() => {
     return Math.max(1, daysLiving + 1) + Math.floor(lifePosts / 10)
@@ -40,9 +53,40 @@ export function ComposePage() {
 
   const canAffordLifePost = doomBalance >= lifePostCost
 
+  // Badge checker hook
+  const { checkAfterPost } = useBadgeChecker()
+
+  // Validate content
+  const validationResult = useMemo(() => {
+    return validateField(content, contentRules)
+  }, [content])
+
+  const contentError = touched ? validationResult.error : undefined
+  const isContentValid = validationResult.isValid
+
+  /** Handle content change with validation */
+  const handleContentChange = useCallback((value: string) => {
+    // Enforce max length during input
+    const trimmedValue = value.slice(0, MAX_LENGTH)
+    setContent(trimmedValue)
+    setError(null)
+  }, [])
+
+  /** Handle content blur for validation */
+  const handleContentBlur = useCallback(() => {
+    setTouched(true)
+  }, [])
+
   /** Handle post submission */
   const handlePost = () => {
-    if (!content.trim()) return
+    // Mark as touched to show validation errors
+    setTouched(true)
+
+    // Validate content
+    if (!isContentValid) {
+      setError(validationResult.error || 'Invalid post content')
+      return
+    }
 
     // Check if user can afford life post
     if (postType === 'life') {
@@ -58,6 +102,12 @@ export function ComposePage() {
     // Create post
     createPost(content.trim(), postType, author)
 
+    // Check for badge unlocks after posting
+    // Use setTimeout to ensure the post is created before checking
+    setTimeout(() => {
+      checkAfterPost()
+    }, 100)
+
     // Navigate back to appropriate feed
     if (postType === 'doom') {
       navigate('/')
@@ -65,6 +115,9 @@ export function ComposePage() {
       navigate('/life')
     }
   }
+
+  const isSubmitDisabled =
+    !content.trim() || !isContentValid || (postType === 'life' && !canAffordLifePost)
 
   return (
     <div className="flex flex-col min-h-full">
@@ -77,9 +130,9 @@ export function ComposePage() {
         rightAction={
           <button
             onClick={handlePost}
-            disabled={!content.trim() || (postType === 'life' && !canAffordLifePost)}
+            disabled={isSubmitDisabled}
             className={`px-4 py-1.5 rounded-full text-[14px] font-semibold transition-colors ${
-              content.trim() && (postType === 'doom' || canAffordLifePost)
+              !isSubmitDisabled
                 ? 'bg-white text-black'
                 : 'bg-[#333] text-[#777]'
             }`}
@@ -157,16 +210,26 @@ export function ComposePage() {
         <div className="w-9 h-9 rounded-full bg-[#333] flex-shrink-0" />
         <div className="flex-1">
           <p className="text-[15px] font-semibold text-white mb-1">{author.username}</p>
-          <textarea
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value.slice(0, maxLength))
-              setError(null)
-            }}
-            placeholder={postType === 'doom' ? "What's the doom?" : "What's your life today?"}
-            className="w-full min-h-[120px] bg-transparent text-[15px] text-white placeholder-[#777] outline-none resize-none"
-            autoFocus
-          />
+          <FormField
+            error={contentError}
+            touched={touched}
+            helperText={
+              content.length > MAX_LENGTH - 50
+                ? `${MAX_LENGTH - content.length} characters remaining`
+                : undefined
+            }
+          >
+            <textarea
+              value={content}
+              onChange={(e) => handleContentChange(e.target.value)}
+              onBlur={handleContentBlur}
+              placeholder={postType === 'doom' ? "What's the doom?" : "What's your life today?"}
+              className={`w-full min-h-[120px] bg-transparent text-[15px] text-white placeholder-[#777] outline-none resize-none ${
+                contentError ? 'border-l-2 border-[#ff3040] pl-2' : ''
+              }`}
+              autoFocus
+            />
+          </FormField>
         </div>
       </div>
 
@@ -182,9 +245,9 @@ export function ComposePage() {
           </button>
         </div>
         <span className={`text-[13px] ${
-          content.length > maxLength - 50 ? 'text-[#ff3040]' : 'text-[#777]'
+          content.length > MAX_LENGTH - 50 ? 'text-[#ff3040]' : 'text-[#777]'
         }`}>
-          {content.length}/{maxLength}
+          {content.length}/{MAX_LENGTH}
         </span>
       </div>
     </div>

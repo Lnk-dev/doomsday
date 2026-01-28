@@ -14,6 +14,7 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
+import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
 import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
@@ -37,27 +38,36 @@ export function DoomScrollPage() {
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
   const [sortBy, setSortBy] = useState<SortOption>('hot')
   const [sharePost, setSharePost] = useState<Post | null>(null)
+  const [quotePost, setQuotePost] = useState<Post | null>(null)
 
   // Get raw data from store (stable references)
   const allPosts = usePostsStore((state) => state.posts)
   const doomFeed = usePostsStore((state) => state.doomFeed)
   const likePost = usePostsStore((state) => state.likePost)
   const unlikePost = usePostsStore((state) => state.unlikePost)
+  const repostPost = usePostsStore((state) => state.repostPost)
+  const unrepostPost = usePostsStore((state) => state.unrepostPost)
+  const quoteRepost = usePostsStore((state) => state.quoteRepost)
   const userId = useUserStore((state) => state.userId)
+  const author = useUserStore((state) => state.author)
   const following = useUserStore((state) => state.following)
+  const isHidden = useUserStore((state) => state.isHidden)
 
   // Compute feed from raw data
   const posts = useMemo(() => {
     return doomFeed.map((id) => allPosts[id]).filter(Boolean)
   }, [allPosts, doomFeed])
 
-  // Filter posts based on active tab
+  // Filter posts based on active tab and hidden users (blocked/muted)
   const filteredPosts = useMemo(() => {
+    // First filter out blocked/muted users
+    const visiblePosts = posts.filter((post) => !isHidden(post.author.username))
+
     if (activeTab === 'following') {
-      return posts.filter((post) => following.includes(post.author.username))
+      return visiblePosts.filter((post) => following.includes(post.author.username))
     }
-    return posts
-  }, [posts, activeTab, following])
+    return visiblePosts
+  }, [posts, activeTab, following, isHidden])
 
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {
@@ -80,6 +90,23 @@ export function DoomScrollPage() {
       unlikePost(postId, userId)
     } else {
       likePost(postId, userId)
+    }
+  }
+
+  /** Handle repost button click */
+  const handleRepost = (post: Post) => {
+    const isReposted = post.repostedByUsers?.includes(userId)
+    if (isReposted) {
+      unrepostPost(post.id, userId)
+    } else {
+      repostPost(post.id, userId, author)
+    }
+  }
+
+  /** Handle quote repost */
+  const handleQuoteRepost = (content: string) => {
+    if (quotePost) {
+      quoteRepost(quotePost.id, userId, author, content)
     }
   }
 
@@ -141,22 +168,40 @@ export function DoomScrollPage() {
 
       {/* Posts feed */}
       <div className="divide-y divide-[#333]">
-        {sortedPosts.map((post) => (
-          <ThreadPost
-            key={post.id}
-            postId={post.id}
-            author={post.author}
-            content={post.content}
-            timestamp={formatRelativeTime(post.createdAt)}
-            likes={post.likes}
-            replies={post.replies}
-            variant="doom"
-            isLiked={post.likedBy.includes(userId)}
-            onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
-            onClick={() => navigate(`/post/${post.id}`)}
-            onShare={() => setSharePost(post)}
-          />
-        ))}
+        {sortedPosts.map((post) => {
+          const originalPost = post.originalPostId ? allPosts[post.originalPostId] : null
+          const isQuoteRepostPost = Boolean(post.quoteContent && post.originalPostId)
+          return (
+            <ThreadPost
+              key={post.id}
+              postId={post.id}
+              author={post.author}
+              content={post.content}
+              timestamp={formatRelativeTime(post.repostedAt || post.createdAt)}
+              likes={post.likes}
+              replies={post.replies}
+              repostCount={post.reposts}
+              variant="doom"
+              isLiked={post.likedBy.includes(userId)}
+              isReposted={post.repostedByUsers?.includes(userId)}
+              repostedBy={post.repostedBy}
+              originalPost={
+                isQuoteRepostPost && originalPost
+                  ? {
+                      author: originalPost.author,
+                      content: originalPost.content,
+                    }
+                  : undefined
+              }
+              isQuoteRepost={isQuoteRepostPost}
+              onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
+              onClick={() => navigate(`/post/${post.id}`)}
+              onShare={() => setSharePost(post)}
+              onRepost={() => handleRepost(post)}
+              onQuoteRepost={() => setQuotePost(post)}
+            />
+          )
+        })}
       </div>
 
       {/* Empty state */}
@@ -188,6 +233,16 @@ export function DoomScrollPage() {
           postId={sharePost.id}
           content={sharePost.content}
           onClose={() => setSharePost(null)}
+        />
+      )}
+
+      {/* Quote repost modal */}
+      {quotePost && (
+        <QuoteRepostModal
+          isOpen={true}
+          onClose={() => setQuotePost(null)}
+          onSubmit={handleQuoteRepost}
+          originalPost={quotePost}
         />
       )}
     </div>

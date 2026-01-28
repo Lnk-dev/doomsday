@@ -22,8 +22,11 @@ import {
   Trash2,
   Volume2,
   Eye,
+  Ban,
+  VolumeX,
+  X,
 } from 'lucide-react'
-import { useUserStore } from '@/store'
+import { useUserStore, useThemeStore } from '@/store'
 import { useState } from 'react'
 
 /** Setting item component */
@@ -40,18 +43,18 @@ function SettingItem({ icon, label, description, onClick, rightElement, danger }
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-[#111] transition-colors ${
-        danger ? 'text-[#ff3040]' : 'text-white'
+      className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-[var(--color-bg-hover)] transition-colors ${
+        danger ? 'text-[var(--color-doom)]' : 'text-[var(--color-text-primary)]'
       }`}
     >
-      <div className={danger ? 'text-[#ff3040]' : 'text-[#777]'}>{icon}</div>
+      <div className={danger ? 'text-[var(--color-doom)]' : 'text-[var(--color-text-secondary)]'}>{icon}</div>
       <div className="flex-1 text-left">
         <p className="text-[15px] font-medium">{label}</p>
         {description && (
-          <p className="text-[13px] text-[#555]">{description}</p>
+          <p className="text-[13px] text-[var(--color-text-muted)]">{description}</p>
         )}
       </div>
-      {rightElement || <ChevronRight size={18} className="text-[#555]" />}
+      {rightElement || <ChevronRight size={18} className="text-[var(--color-text-muted)]" />}
     </button>
   )
 }
@@ -67,7 +70,7 @@ function Toggle({ enabled, onChange }: ToggleProps) {
     <button
       onClick={() => onChange(!enabled)}
       className={`w-11 h-6 rounded-full transition-colors ${
-        enabled ? 'bg-[#ff3040]' : 'bg-[#333]'
+        enabled ? 'bg-[var(--color-doom)]' : 'bg-[var(--color-toggle-bg)]'
       }`}
     >
       <div
@@ -84,12 +87,22 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const author = useUserStore((state) => state.author)
   const isConnected = useUserStore((state) => state.isConnected)
+  const blocked = useUserStore((state) => state.blocked)
+  const muted = useUserStore((state) => state.muted)
+  const unblockUser = useUserStore((state) => state.unblockUser)
+  const unmuteUser = useUserStore((state) => state.unmuteUser)
+
+  // Theme store
+  const themeMode = useThemeStore((state) => state.mode)
+  const setTheme = useThemeStore((state) => state.setTheme)
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && useThemeStore.getState().resolvedTheme === 'dark')
 
   // Local state for toggles
   const [notifications, setNotifications] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [darkMode, setDarkMode] = useState(true)
   const [showBalance, setShowBalance] = useState(true)
+  const [showBlockedList, setShowBlockedList] = useState(false)
+  const [showMutedList, setShowMutedList] = useState(false)
 
   /** Handle logout */
   const handleLogout = () => {
@@ -101,19 +114,19 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-black">
+    <div className="flex flex-col min-h-full bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-[#333]">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-[var(--color-border)]">
         <button onClick={() => navigate(-1)}>
-          <ArrowLeft size={24} className="text-white" />
+          <ArrowLeft size={24} className="text-[var(--color-text-primary)]" />
         </button>
-        <h1 className="text-[17px] font-semibold text-white">Settings</h1>
+        <h1 className="text-[17px] font-semibold text-[var(--color-text-primary)]">Settings</h1>
       </div>
 
       {/* Account section */}
       <div className="mt-4">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">ACCOUNT</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">ACCOUNT</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<User size={20} />}
             label="Profile"
@@ -130,8 +143,8 @@ export function SettingsPage() {
 
       {/* Notifications section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">NOTIFICATIONS</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">NOTIFICATIONS</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<Bell size={20} />}
             label="Push notifications"
@@ -149,13 +162,13 @@ export function SettingsPage() {
 
       {/* Display section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">DISPLAY</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">DISPLAY</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<Moon size={20} />}
             label="Dark mode"
-            description="Always on for doom vibes"
-            rightElement={<Toggle enabled={darkMode} onChange={setDarkMode} />}
+            description={isDarkMode ? 'Dark theme active' : 'Light theme active'}
+            rightElement={<Toggle enabled={isDarkMode} onChange={(enabled) => setTheme(enabled ? 'dark' : 'light')} />}
           />
           <SettingItem
             icon={<Eye size={20} />}
@@ -166,10 +179,83 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* Privacy section - Blocked & Muted */}
+      <div className="mt-6">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">PRIVACY</h2>
+        <div className="border-y border-[var(--color-border)]">
+          <SettingItem
+            icon={<Ban size={20} />}
+            label="Blocked users"
+            description={`${blocked.length} blocked`}
+            onClick={() => setShowBlockedList(!showBlockedList)}
+            rightElement={
+              <ChevronRight
+                size={18}
+                className={`text-[var(--color-text-muted)] transition-transform ${showBlockedList ? 'rotate-90' : ''}`}
+              />
+            }
+          />
+          {showBlockedList && blocked.length > 0 && (
+            <div className="bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              {blocked.map((username) => (
+                <div key={username} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-[14px] text-[var(--color-text-primary)]">@{username}</span>
+                  <button
+                    onClick={() => unblockUser(username)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-bg-primary)] text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <X size={12} />
+                    Unblock
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showBlockedList && blocked.length === 0 && (
+            <div className="px-4 py-3 text-[13px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              No blocked users
+            </div>
+          )}
+          <SettingItem
+            icon={<VolumeX size={20} />}
+            label="Muted users"
+            description={`${muted.length} muted`}
+            onClick={() => setShowMutedList(!showMutedList)}
+            rightElement={
+              <ChevronRight
+                size={18}
+                className={`text-[var(--color-text-muted)] transition-transform ${showMutedList ? 'rotate-90' : ''}`}
+              />
+            }
+          />
+          {showMutedList && muted.length > 0 && (
+            <div className="bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              {muted.map((username) => (
+                <div key={username} className="flex items-center justify-between px-4 py-2">
+                  <span className="text-[14px] text-[var(--color-text-primary)]">@{username}</span>
+                  <button
+                    onClick={() => unmuteUser(username)}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-bg-primary)] text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)]"
+                  >
+                    <X size={12} />
+                    Unmute
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {showMutedList && muted.length === 0 && (
+            <div className="px-4 py-3 text-[13px] text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] border-t border-[var(--color-border)]">
+              No muted users
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Support section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">SUPPORT</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">SUPPORT</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<HelpCircle size={20} />}
             label="Help & FAQ"
@@ -180,8 +266,8 @@ export function SettingsPage() {
 
       {/* Danger zone */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#ff3040] mb-2">DANGER ZONE</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-doom)] mb-2">DANGER ZONE</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<LogOut size={20} />}
             label="Reset local data"
@@ -200,8 +286,8 @@ export function SettingsPage() {
 
       {/* Version info */}
       <div className="px-4 py-8 text-center">
-        <p className="text-[13px] text-[#555]">Doomsday v0.1.0</p>
-        <p className="text-[12px] text-[#444] mt-1">The end is near</p>
+        <p className="text-[13px] text-[var(--color-text-muted)]">Doomsday v0.1.0</p>
+        <p className="text-[12px] text-[var(--color-text-muted)] mt-1">The end is near</p>
       </div>
     </div>
   )

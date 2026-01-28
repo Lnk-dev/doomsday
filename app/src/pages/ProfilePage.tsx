@@ -28,6 +28,7 @@ import {
   Bookmark,
   Flame,
   Award,
+  Trophy,
 } from 'lucide-react'
 import {
   useUserStore,
@@ -248,7 +249,7 @@ export function ProfilePage() {
       {/* Life Timeline button */}
       <button
         onClick={() => navigate('/timeline')}
-        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#00ba7c10] border border-[#00ba7c30] hover:bg-[#00ba7c20] transition-colors"
+        className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#00ba7c10] border border-[#00ba7c30] hover:bg-[#00ba7c20] transition-colors"
       >
         <div className="w-10 h-10 rounded-full bg-[#00ba7c20] flex items-center justify-center">
           <Heart size={20} className="text-[#00ba7c]" fill="#00ba7c" />
@@ -258,6 +259,21 @@ export function ProfilePage() {
           <p className="text-[12px] text-[#00ba7c]">{daysLiving} days living</p>
         </div>
         <ChevronRight size={20} className="text-[#00ba7c]" />
+      </button>
+
+      {/* Leaderboard button */}
+      <button
+        onClick={() => navigate('/leaderboard')}
+        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#ff6b3510] border border-[#ff6b3530] hover:bg-[#ff6b3520] transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
+          <Trophy size={20} className="text-[#ff6b35]" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-[14px] font-semibold text-white">Leaderboard</p>
+          <p className="text-[12px] text-[#ff6b35]">View top doomers</p>
+        </div>
+        <ChevronRight size={20} className="text-[#ff6b35]" />
       </button>
 
       {/* Streak Card */}

@@ -17,7 +17,7 @@ import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { FeedSkeleton } from '@/components/ui/Skeleton'
 import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
-import { Flame, Clock, TrendingUp, UserPlus, Search } from 'lucide-react'
+import { Flame, Clock, TrendingUp, UserPlus, Search, Trophy } from 'lucide-react'
 import { usePostsStore, useUserStore, useBookmarksStore, useLoadingStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo, useEffect } from 'react'
@@ -145,6 +145,15 @@ export function DoomScrollPage() {
     <div className="flex flex-col min-h-full">
       <PageHeader
         showLogo
+        leftAction={
+          <button
+            onClick={() => navigate('/leaderboard')}
+            className="p-1 text-[#777] hover:text-white transition-colors"
+            aria-label="View leaderboard"
+          >
+            <Trophy size={22} />
+          </button>
+        }
         rightAction={
           <button
             onClick={() => navigate('/search')}

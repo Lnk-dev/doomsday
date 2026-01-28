@@ -171,7 +171,10 @@ export function EventsPage() {
 
       {/* Create event CTA */}
       <div className="px-4 py-4">
-        <button className="w-full py-3 rounded-xl bg-[#1a1a1a] text-[15px] font-semibold text-white hover:bg-[#333] transition-colors">
+        <button
+          onClick={() => navigate('/events/create')}
+          className="w-full py-3 rounded-xl bg-[#ff3040] text-[15px] font-semibold text-white hover:bg-[#cc2633] transition-colors"
+        >
           + Create Prediction
         </button>
       </div>

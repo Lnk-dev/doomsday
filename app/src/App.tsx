@@ -7,6 +7,7 @@ import { LeaderboardPage } from '@/pages/LeaderboardPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { ComposePage } from '@/pages/ComposePage'
 import { EventDetailPage } from '@/pages/EventDetailPage'
+import { CreateEventPage } from '@/pages/CreateEventPage'
 import './index.css'
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/compose" element={<ComposePage />} />
           <Route path="/events/:eventId" element={<EventDetailPage />} />
+          <Route path="/events/create" element={<CreateEventPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -47,7 +47,7 @@ interface ThreadPostProps {
 }
 
 export function ThreadPost({
-  postId: _postId,
+  postId,
   author,
   content,
   timestamp,
@@ -62,6 +62,9 @@ export function ThreadPost({
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
+
+  // postId is available for future use (e.g., analytics, navigation)
+  void postId
 
   return (
     <article className="flex gap-3 px-4 py-3">

@@ -13,7 +13,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Heart, Calendar, Award, Flame, Sparkles } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 interface Milestone {
   id: string
@@ -50,6 +50,9 @@ export function LifeTimelinePage() {
       .sort((a, b) => a.createdAt - b.createdAt) // Oldest first for timeline
   }, [allPosts, displayUsername])
 
+  // Capture current time once for milestone calculations
+  const [nowTimestamp] = useState(() => Date.now())
+
   // Generate milestones based on activity
   const milestones = useMemo(() => {
     const result: Milestone[] = []
@@ -77,7 +80,7 @@ export function LifeTimelinePage() {
           description: 'Survived the first week against all odds',
           icon: Calendar,
           color: '#3b82f6',
-          date: Date.now() - (daysLiving - 7) * 24 * 60 * 60 * 1000,
+          date: nowTimestamp - (daysLiving - 7) * 24 * 60 * 60 * 1000,
         })
       }
       if (daysLiving >= 30) {
@@ -88,7 +91,7 @@ export function LifeTimelinePage() {
           description: 'A full month of choosing life',
           icon: Calendar,
           color: '#8b5cf6',
-          date: Date.now() - (daysLiving - 30) * 24 * 60 * 60 * 1000,
+          date: nowTimestamp - (daysLiving - 30) * 24 * 60 * 60 * 1000,
         })
       }
     }
@@ -102,7 +105,7 @@ export function LifeTimelinePage() {
         description: 'Consistently sharing your journey',
         icon: Heart,
         color: '#ec4899',
-        date: lifePosts[4]?.createdAt || Date.now(),
+        date: lifePosts[4]?.createdAt || nowTimestamp,
       })
     }
     if (lifePosts.length >= 10) {
@@ -113,13 +116,13 @@ export function LifeTimelinePage() {
         description: 'A dedicated life chronicler',
         icon: Award,
         color: '#f59e0b',
-        date: lifePosts[9]?.createdAt || Date.now(),
+        date: lifePosts[9]?.createdAt || nowTimestamp,
       })
     }
 
     // Sort by date
     return result.sort((a, b) => a.date - b.date)
-  }, [lifePosts, daysLiving, isOwnTimeline])
+  }, [lifePosts, daysLiving, isOwnTimeline, nowTimestamp])
 
   // Combine posts and milestones into timeline
   const timelineItems = useMemo(() => {

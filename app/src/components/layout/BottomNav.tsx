@@ -19,7 +19,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { Home, Search, PenSquare, Heart, User } from 'lucide-react'
 import { usePostsStore, useEventsStore } from '@/store'
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useRef } from 'react'
 
 /** Navigation items configuration */
 const navItems = [
@@ -65,7 +65,10 @@ export function BottomNav() {
     return result
   }, [doomFeed, lifeFeed, allPosts, events, lastViewed])
 
-  // Update last viewed when navigating
+  // Track pending update to avoid setState in effect body
+  const pendingUpdate = useRef<string | null>(null)
+
+  // Determine key based on path
   useEffect(() => {
     const path = location.pathname
     let key: string | null = null
@@ -75,10 +78,18 @@ export function BottomNav() {
     else if (path === '/events' || path.startsWith('/events/')) key = 'events'
 
     if (key) {
-      setLastViewed((prev) => {
-        const updated = { ...prev, [key]: Date.now() }
-        localStorage.setItem('doomsday-last-viewed', JSON.stringify(updated))
-        return updated
+      pendingUpdate.current = key
+      // Use microtask to avoid synchronous setState in effect
+      queueMicrotask(() => {
+        if (pendingUpdate.current) {
+          const updateKey = pendingUpdate.current
+          pendingUpdate.current = null
+          setLastViewed((prev) => {
+            const updated = { ...prev, [updateKey]: Date.now() }
+            localStorage.setItem('doomsday-last-viewed', JSON.stringify(updated))
+            return updated
+          })
+        }
       })
     }
   }, [location.pathname])

@@ -9,7 +9,7 @@
  * - Preview before submission
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, AlertTriangle, Check } from 'lucide-react'
 import { useEventsStore } from '@/store'
@@ -40,6 +40,9 @@ export function CreateEventPage() {
   const navigate = useNavigate()
   const createEvent = useEventsStore((state) => state.createEvent)
 
+  // Capture current time once on mount to avoid Date.now() during render
+  const [nowTimestamp] = useState(() => Date.now())
+
   // Form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -63,12 +66,14 @@ export function CreateEventPage() {
   }
 
   /** Format countdown end date */
-  const endDate = new Date(Date.now() + daysUntilEnd * 24 * 60 * 60 * 1000)
-  const formattedDate = endDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  const formattedDate = useMemo(() => {
+    const endDate = new Date(nowTimestamp + daysUntilEnd * 24 * 60 * 60 * 1000)
+    return endDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  }, [nowTimestamp, daysUntilEnd])
 
   const selectedCategory = categories.find((c) => c.id === category)
 

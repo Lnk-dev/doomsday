@@ -38,20 +38,23 @@ export function PostDetailPage() {
   const followUser = useUserStore((state) => state.followUser)
   const unfollowUser = useUserStore((state) => state.unfollowUser)
 
+  // Capture initial timestamp once to avoid Date.now() during render
+  const [initialTime] = useState(() => Date.now())
+
   // Local state for comments (would be in store in real app)
-  const [comments, setComments] = useState<Comment[]>([
+  const [comments, setComments] = useState<Comment[]>(() => [
     {
       id: '1',
       authorUsername: 'skeptic_observer',
       content: 'This is exactly what I\'ve been thinking. The signs are everywhere.',
-      createdAt: Date.now() - 30 * 60 * 1000,
+      createdAt: initialTime - 30 * 60 * 1000,
       likes: 12,
     },
     {
       id: '2',
       authorUsername: 'hopeful_one',
       content: 'I disagree. We\'ve been through worse and survived.',
-      createdAt: Date.now() - 15 * 60 * 1000,
+      createdAt: initialTime - 15 * 60 * 1000,
       likes: 8,
     },
   ])

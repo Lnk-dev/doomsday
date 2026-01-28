@@ -12,6 +12,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Post, PostVariant, Author, ID } from '@/types'
+import { sanitizeText } from '@/lib/sanitize'
 
 /** Generate unique ID */
 const generateId = (): ID => Math.random().toString(36).substring(2, 15)
@@ -159,7 +160,7 @@ export const usePostsStore = create<PostsState>()(
         const post: Post = {
           id: generateId(),
           author,
-          content,
+          content: sanitizeText(content), // Sanitize user content
           variant,
           createdAt: now(),
           likes: 0,

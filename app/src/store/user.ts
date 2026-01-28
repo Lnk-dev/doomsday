@@ -47,6 +47,10 @@ interface UserState {
   incrementLifePosts: () => void
   /** Set connected wallet */
   setConnected: (connected: boolean) => void
+  /** Donate $LIFE to another user (costs $DOOM) */
+  donateLife: (amount: number) => boolean
+  /** Add $LIFE tokens */
+  addLife: (amount: number) => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -100,6 +104,23 @@ export const useUserStore = create<UserState>()(
 
       setConnected: (connected) => {
         set({ isConnected: connected })
+      },
+
+      donateLife: (amount) => {
+        const { doomBalance } = get()
+        // Cost: 1 $DOOM per $LIFE donated
+        if (doomBalance < amount) return false
+
+        set((state) => ({
+          doomBalance: state.doomBalance - amount,
+        }))
+        return true
+      },
+
+      addLife: (amount) => {
+        set((state) => ({
+          lifeBalance: state.lifeBalance + amount,
+        }))
       },
     }),
     {

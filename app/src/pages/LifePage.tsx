@@ -18,11 +18,13 @@ import { Heart, Gift } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Author } from '@/types'
 
 type ActivityTab = 'all' | 'follows' | 'replies' | 'mentions'
 
 export function LifePage() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ActivityTab>('all')
   const [donationTarget, setDonationTarget] = useState<Author | null>(null)
 
@@ -119,6 +121,7 @@ export function LifePage() {
           return (
             <div key={post.id} className="relative">
               <ThreadPost
+                postId={post.id}
                 author={post.author}
                 content={post.content}
                 timestamp={formatRelativeTime(post.createdAt)}
@@ -127,6 +130,7 @@ export function LifePage() {
                 variant="life"
                 isLiked={post.likedBy.includes(userId)}
                 onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
+                onClick={() => navigate(`/post/${post.id}`)}
               />
               {/* Donate button (only for other users' posts) */}
               {!isOwnPost && (

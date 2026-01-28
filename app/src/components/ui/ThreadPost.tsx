@@ -14,6 +14,8 @@
 import { Heart, MessageCircle, Repeat2, Send, MoreHorizontal } from 'lucide-react'
 
 interface ThreadPostProps {
+  /** Post ID for navigation */
+  postId?: string
   /** Author information */
   author: {
     name?: string
@@ -38,9 +40,12 @@ interface ThreadPostProps {
   isLiked?: boolean
   /** Callback when like button is clicked */
   onLike?: () => void
+  /** Callback when post content is clicked */
+  onClick?: () => void
 }
 
 export function ThreadPost({
+  postId: _postId,
   author,
   content,
   timestamp,
@@ -50,6 +55,7 @@ export function ThreadPost({
   variant = 'default',
   isLiked = false,
   onLike,
+  onClick,
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
@@ -96,7 +102,12 @@ export function ThreadPost({
         </div>
 
         {/* Post content */}
-        <p className="text-[15px] text-white mt-0.5 whitespace-pre-wrap break-words">
+        <p
+          onClick={onClick}
+          className={`text-[15px] text-white mt-0.5 whitespace-pre-wrap break-words ${
+            onClick ? 'cursor-pointer' : ''
+          }`}
+        >
           {content}
         </p>
 

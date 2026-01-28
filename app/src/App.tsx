@@ -9,6 +9,7 @@ import { ComposePage } from '@/pages/ComposePage'
 import { EventDetailPage } from '@/pages/EventDetailPage'
 import { CreateEventPage } from '@/pages/CreateEventPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { PostDetailPage } from '@/pages/PostDetailPage'
 import './index.css'
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
           <Route path="/events/:eventId" element={<EventDetailPage />} />
           <Route path="/events/create" element={<CreateEventPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/post/:postId" element={<PostDetailPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

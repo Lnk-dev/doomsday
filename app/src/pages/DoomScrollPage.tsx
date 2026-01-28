@@ -17,6 +17,7 @@ import { Flame, Clock, TrendingUp } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Post } from '@/types'
 
 type FeedTab = 'foryou' | 'following'
@@ -31,6 +32,7 @@ const getHotScore = (post: Post): number => {
 }
 
 export function DoomScrollPage() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
   const [sortBy, setSortBy] = useState<SortOption>('hot')
 
@@ -131,6 +133,7 @@ export function DoomScrollPage() {
         {sortedPosts.map((post) => (
           <ThreadPost
             key={post.id}
+            postId={post.id}
             author={post.author}
             content={post.content}
             timestamp={formatRelativeTime(post.createdAt)}
@@ -139,6 +142,7 @@ export function DoomScrollPage() {
             variant="doom"
             isLiked={post.likedBy.includes(userId)}
             onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
+            onClick={() => navigate(`/post/${post.id}`)}
           />
         ))}
       </div>

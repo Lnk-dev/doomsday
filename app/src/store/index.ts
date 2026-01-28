@@ -60,3 +60,10 @@ export type { Prediction, PredictionStats } from './predictions'
 export { useReportsStore } from './reports'
 export type { Report, ReportStatus } from './reports'
 export { useStatusStore } from './status'
+export {
+  useCreatorStore,
+  useCreatorStats,
+  usePendingPayouts,
+  useRecentEarnings,
+} from './creator'
+export type { WithdrawalStatus, WithdrawalEntry } from './creator'

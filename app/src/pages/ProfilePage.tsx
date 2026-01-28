@@ -54,7 +54,7 @@ export function ProfilePage() {
       <PageHeader
         title="Profile"
         rightAction={
-          <button className="p-1">
+          <button className="p-1" onClick={() => navigate('/settings')}>
             <Settings size={24} className="text-white" />
           </button>
         }

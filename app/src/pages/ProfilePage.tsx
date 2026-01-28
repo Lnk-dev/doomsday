@@ -12,7 +12,7 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
-import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles } from 'lucide-react'
+import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
 import { useUserStore, usePostsStore, useEventsStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback } from 'react'
@@ -146,6 +146,21 @@ export function ProfilePage() {
           <p className="text-[11px] text-[#777]">Life Posts</p>
         </div>
       </div>
+
+      {/* Life Timeline button */}
+      <button
+        onClick={() => navigate('/timeline')}
+        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#00ba7c10] border border-[#00ba7c30] hover:bg-[#00ba7c20] transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-[#00ba7c20] flex items-center justify-center">
+          <Heart size={20} className="text-[#00ba7c]" fill="#00ba7c" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-[14px] font-semibold text-white">Life Timeline</p>
+          <p className="text-[12px] text-[#00ba7c]">{daysLiving} days living</p>
+        </div>
+        <ChevronRight size={20} className="text-[#00ba7c]" />
+      </button>
 
       {/* Tabs */}
       <div className="flex border-b border-[#333]">

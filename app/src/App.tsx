@@ -27,6 +27,9 @@ const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })))
 const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })))
 const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })))
+const NotificationSettingsPage = lazy(() => import('@/pages/NotificationSettingsPage').then(m => ({ default: m.NotificationSettingsPage })))
+const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
+const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -54,6 +57,12 @@ function App() {
           <Route path="/welcome" element={
             <Suspense fallback={<PageLoader />}>
               <LandingPage />
+            </Suspense>
+          } />
+          {/* Onboarding flow outside AppLayout */}
+          <Route path="/onboarding" element={
+            <Suspense fallback={<PageLoader />}>
+              <OnboardingPage />
             </Suspense>
           } />
         <Route element={<AppLayout />}>
@@ -145,6 +154,16 @@ function App() {
           <Route path="/help" element={
             <Suspense fallback={<PageLoader />}>
               <HelpPage />
+            </Suspense>
+          } />
+          <Route path="/settings/notifications" element={
+            <Suspense fallback={<PageLoader />}>
+              <NotificationSettingsPage />
+            </Suspense>
+          } />
+          <Route path="/settings/gambling" element={
+            <Suspense fallback={<PageLoader />}>
+              <ResponsibleGamblingPage />
             </Suspense>
           } />
           <Route path="*" element={

@@ -14,12 +14,13 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { DonationModal } from '@/components/ui/DonationModal'
+import { ShareModal } from '@/components/ui/ShareModal'
 import { Heart, Gift } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Author } from '@/types'
+import type { Author, Post } from '@/types'
 
 type ActivityTab = 'all' | 'follows' | 'replies' | 'mentions'
 
@@ -27,6 +28,7 @@ export function LifePage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ActivityTab>('all')
   const [donationTarget, setDonationTarget] = useState<Author | null>(null)
+  const [sharePost, setSharePost] = useState<Post | null>(null)
 
   // Store hooks - get raw data (stable references)
   const allPosts = usePostsStore((state) => state.posts)
@@ -131,6 +133,7 @@ export function LifePage() {
                 isLiked={post.likedBy.includes(userId)}
                 onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
                 onClick={() => navigate(`/post/${post.id}`)}
+                onShare={() => setSharePost(post)}
               />
               {/* Donate button (only for other users' posts) */}
               {!isOwnPost && (
@@ -165,6 +168,15 @@ export function LifePage() {
         <DonationModal
           recipient={donationTarget}
           onClose={() => setDonationTarget(null)}
+        />
+      )}
+
+      {/* Share modal */}
+      {sharePost && (
+        <ShareModal
+          postId={sharePost.id}
+          content={sharePost.content}
+          onClose={() => setSharePost(null)}
         />
       )}
     </div>

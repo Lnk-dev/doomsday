@@ -23,7 +23,7 @@ import {
   Volume2,
   Eye,
 } from 'lucide-react'
-import { useUserStore } from '@/store'
+import { useUserStore, useThemeStore } from '@/store'
 import { useState } from 'react'
 
 /** Setting item component */
@@ -40,18 +40,18 @@ function SettingItem({ icon, label, description, onClick, rightElement, danger }
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-[#111] transition-colors ${
-        danger ? 'text-[#ff3040]' : 'text-white'
+      className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-[var(--color-bg-hover)] transition-colors ${
+        danger ? 'text-[var(--color-doom)]' : 'text-[var(--color-text-primary)]'
       }`}
     >
-      <div className={danger ? 'text-[#ff3040]' : 'text-[#777]'}>{icon}</div>
+      <div className={danger ? 'text-[var(--color-doom)]' : 'text-[var(--color-text-secondary)]'}>{icon}</div>
       <div className="flex-1 text-left">
         <p className="text-[15px] font-medium">{label}</p>
         {description && (
-          <p className="text-[13px] text-[#555]">{description}</p>
+          <p className="text-[13px] text-[var(--color-text-muted)]">{description}</p>
         )}
       </div>
-      {rightElement || <ChevronRight size={18} className="text-[#555]" />}
+      {rightElement || <ChevronRight size={18} className="text-[var(--color-text-muted)]" />}
     </button>
   )
 }
@@ -67,7 +67,7 @@ function Toggle({ enabled, onChange }: ToggleProps) {
     <button
       onClick={() => onChange(!enabled)}
       className={`w-11 h-6 rounded-full transition-colors ${
-        enabled ? 'bg-[#ff3040]' : 'bg-[#333]'
+        enabled ? 'bg-[var(--color-doom)]' : 'bg-[var(--color-toggle-bg)]'
       }`}
     >
       <div
@@ -85,10 +85,14 @@ export function SettingsPage() {
   const author = useUserStore((state) => state.author)
   const isConnected = useUserStore((state) => state.isConnected)
 
+  // Theme store
+  const themeMode = useThemeStore((state) => state.mode)
+  const setTheme = useThemeStore((state) => state.setTheme)
+  const isDarkMode = themeMode === 'dark' || (themeMode === 'system' && useThemeStore.getState().resolvedTheme === 'dark')
+
   // Local state for toggles
   const [notifications, setNotifications] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [darkMode, setDarkMode] = useState(true)
   const [showBalance, setShowBalance] = useState(true)
 
   /** Handle logout */
@@ -101,19 +105,19 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full bg-black">
+    <div className="flex flex-col min-h-full bg-[var(--color-bg-primary)]">
       {/* Header */}
-      <div className="flex items-center gap-4 px-4 py-3 border-b border-[#333]">
+      <div className="flex items-center gap-4 px-4 py-3 border-b border-[var(--color-border)]">
         <button onClick={() => navigate(-1)}>
-          <ArrowLeft size={24} className="text-white" />
+          <ArrowLeft size={24} className="text-[var(--color-text-primary)]" />
         </button>
-        <h1 className="text-[17px] font-semibold text-white">Settings</h1>
+        <h1 className="text-[17px] font-semibold text-[var(--color-text-primary)]">Settings</h1>
       </div>
 
       {/* Account section */}
       <div className="mt-4">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">ACCOUNT</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">ACCOUNT</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<User size={20} />}
             label="Profile"
@@ -130,8 +134,8 @@ export function SettingsPage() {
 
       {/* Notifications section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">NOTIFICATIONS</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">NOTIFICATIONS</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<Bell size={20} />}
             label="Push notifications"
@@ -149,13 +153,13 @@ export function SettingsPage() {
 
       {/* Display section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">DISPLAY</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">DISPLAY</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<Moon size={20} />}
             label="Dark mode"
-            description="Always on for doom vibes"
-            rightElement={<Toggle enabled={darkMode} onChange={setDarkMode} />}
+            description={isDarkMode ? 'Dark theme active' : 'Light theme active'}
+            rightElement={<Toggle enabled={isDarkMode} onChange={(enabled) => setTheme(enabled ? 'dark' : 'light')} />}
           />
           <SettingItem
             icon={<Eye size={20} />}
@@ -168,8 +172,8 @@ export function SettingsPage() {
 
       {/* Support section */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#777] mb-2">SUPPORT</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">SUPPORT</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<HelpCircle size={20} />}
             label="Help & FAQ"
@@ -180,8 +184,8 @@ export function SettingsPage() {
 
       {/* Danger zone */}
       <div className="mt-6">
-        <h2 className="px-4 text-[13px] font-semibold text-[#ff3040] mb-2">DANGER ZONE</h2>
-        <div className="border-y border-[#333]">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-doom)] mb-2">DANGER ZONE</h2>
+        <div className="border-y border-[var(--color-border)]">
           <SettingItem
             icon={<LogOut size={20} />}
             label="Reset local data"
@@ -200,8 +204,8 @@ export function SettingsPage() {
 
       {/* Version info */}
       <div className="px-4 py-8 text-center">
-        <p className="text-[13px] text-[#555]">Doomsday v0.1.0</p>
-        <p className="text-[12px] text-[#444] mt-1">The end is near</p>
+        <p className="text-[13px] text-[var(--color-text-muted)]">Doomsday v0.1.0</p>
+        <p className="text-[12px] text-[var(--color-text-muted)] mt-1">The end is near</p>
       </div>
     </div>
   )

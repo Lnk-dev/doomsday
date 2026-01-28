@@ -14,9 +14,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import {
   detectSpam,
-  calculateSpamScore,
   isRapidPosting,
-  isDuplicateContent,
   SPAM_THRESHOLDS,
   SPAM_COOLDOWNS,
   type SpamDetectionResult,
@@ -77,10 +75,13 @@ export function useSpamDetection(
     userId = 'anonymous',
     accountCreatedAt,
     userPostCount = 0,
-    enableRealTimeAnalysis = true,
-    debounceDelay = 300,
+    // These are reserved for future real-time analysis features
+    enableRealTimeAnalysis: _enableRealTimeAnalysis = true,
+    debounceDelay: _debounceDelay = 300,
     customThreshold,
   } = options
+  void _enableRealTimeAnalysis
+  void _debounceDelay
 
   // State
   const [isSpam, setIsSpam] = useState(false)
@@ -131,29 +132,6 @@ export function useSpamDetection(
       }
     },
     [userId, accountAgeMs, userPostCount, spamThreshold]
-  )
-
-  // Debounced analysis for real-time checking
-  const debouncedAnalyze = useCallback(
-    (content: string) => {
-      if (!enableRealTimeAnalysis) return
-
-      // Clear existing timer
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-      }
-
-      setIsAnalyzing(true)
-
-      debounceTimerRef.current = setTimeout(() => {
-        const result = analyzeContent(content)
-        setIsSpam(result.isSpam)
-        setSpamScore(result.spamScore)
-        setReasons(result.reasons)
-        setIsAnalyzing(false)
-      }, debounceDelay)
-    },
-    [analyzeContent, debounceDelay, enableRealTimeAnalysis]
   )
 
   // Record a post and update tracking

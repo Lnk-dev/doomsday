@@ -25,6 +25,8 @@ import {
   Ban,
   VolumeX,
   X,
+  FileText,
+  Scale,
 } from 'lucide-react'
 import { useUserStore, useThemeStore } from '@/store'
 import { useState } from 'react'
@@ -249,6 +251,25 @@ export function SettingsPage() {
               No muted users
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Legal section */}
+      <div className="mt-6">
+        <h2 className="px-4 text-[13px] font-semibold text-[var(--color-text-secondary)] mb-2">LEGAL</h2>
+        <div className="border-y border-[var(--color-border)]">
+          <SettingItem
+            icon={<FileText size={20} />}
+            label="Terms of Service"
+            description="Read our terms and conditions"
+            onClick={() => navigate('/terms')}
+          />
+          <SettingItem
+            icon={<Scale size={20} />}
+            label="Privacy Policy"
+            description="How we handle your data"
+            onClick={() => navigate('/privacy')}
+          />
         </div>
       </div>
 

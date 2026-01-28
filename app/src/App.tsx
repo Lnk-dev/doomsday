@@ -23,6 +23,8 @@ const TrendingPage = lazy(() => import('@/pages/TrendingPage').then(m => ({ defa
 const DiscoverPage = lazy(() => import('@/pages/DiscoverPage').then(m => ({ default: m.DiscoverPage })))
 const NotFoundPage = lazy(() => import('@/components/error/NotFound').then(m => ({ default: m.NotFoundPage })))
 const SearchPage = lazy(() => import('@/pages/SearchPage').then(m => ({ default: m.SearchPage })))
+const TermsPage = lazy(() => import('@/pages/TermsPage').then(m => ({ default: m.TermsPage })))
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -120,6 +122,16 @@ function App() {
           <Route path="/search" element={
             <Suspense fallback={<PageLoader />}>
               <SearchPage />
+            </Suspense>
+          } />
+          <Route path="/terms" element={
+            <Suspense fallback={<PageLoader />}>
+              <TermsPage />
+            </Suspense>
+          } />
+          <Route path="/privacy" element={
+            <Suspense fallback={<PageLoader />}>
+              <PrivacyPage />
             </Suspense>
           } />
           <Route path="*" element={

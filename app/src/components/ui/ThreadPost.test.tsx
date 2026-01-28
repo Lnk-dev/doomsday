@@ -2,6 +2,7 @@
  * ThreadPost Component Tests
  *
  * Tests for the ThreadPost component which displays posts in the feed.
+ * Issue #112: Add component unit tests with React Testing Library
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -215,7 +216,8 @@ describe('ThreadPost', () => {
       render(<ThreadPost {...defaultProps} />)
 
       const buttons = screen.getAllByRole('button')
-      expect(buttons.length).toBe(5)
+      // 5 action buttons (like, comment, repost, share, bookmark) + 1 more options button
+      expect(buttons.length).toBe(6)
     })
   })
 
@@ -234,6 +236,152 @@ describe('ThreadPost', () => {
 
       const contentEl = screen.getByText(longContent)
       expect(contentEl).toHaveClass('break-words')
+    })
+  })
+
+  describe('bookmark functionality', () => {
+    it('should call onBookmark when bookmark button is clicked', () => {
+      const onBookmark = vi.fn()
+      render(<ThreadPost {...defaultProps} onBookmark={onBookmark} />)
+
+      const actionButtons = document.querySelector('.flex.items-center.gap-1.mt-3')
+      const buttons = actionButtons?.querySelectorAll('button')
+      const bookmarkButton = buttons?.[4]
+      fireEvent.click(bookmarkButton!)
+
+      expect(onBookmark).toHaveBeenCalledTimes(1)
+    })
+
+    it('should show filled bookmark icon when isBookmarked is true', () => {
+      render(<ThreadPost {...defaultProps} isBookmarked={true} />)
+
+      const bookmarkIcon = document.querySelector('.fill-\\[\\#1d9bf0\\]')
+      expect(bookmarkIcon).toBeInTheDocument()
+    })
+
+    it('should show outline bookmark icon when isBookmarked is false', () => {
+      render(<ThreadPost {...defaultProps} isBookmarked={false} />)
+
+      const bookmarkIcon = document.querySelector('.fill-\\[\\#1d9bf0\\]')
+      expect(bookmarkIcon).not.toBeInTheDocument()
+    })
+  })
+
+  describe('repost functionality', () => {
+    it('should display repost count when repostCount > 0', () => {
+      render(<ThreadPost {...defaultProps} repostCount={5} />)
+
+      expect(screen.getByText('5 reposts')).toBeInTheDocument()
+    })
+
+    it('should display singular repost when repostCount = 1', () => {
+      render(<ThreadPost {...defaultProps} repostCount={1} />)
+
+      expect(screen.getByText('1 repost')).toBeInTheDocument()
+    })
+
+    it('should show reposted by attribution when repostedBy is provided', () => {
+      render(
+        <ThreadPost
+          {...defaultProps}
+          repostedBy={{ username: 'reposter', address: null }}
+        />
+      )
+
+      expect(screen.getByText('@reposter reposted')).toBeInTheDocument()
+    })
+  })
+
+  describe('quote repost', () => {
+    it('should render original post when isQuoteRepost is true', () => {
+      render(
+        <ThreadPost
+          {...defaultProps}
+          isQuoteRepost={true}
+          originalPost={{
+            author: { username: 'originalauthor', verified: false },
+            content: 'Original post content',
+          }}
+        />
+      )
+
+      expect(screen.getByText('@originalauthor')).toBeInTheDocument()
+      expect(screen.getByText('Original post content')).toBeInTheDocument()
+    })
+
+    it('should show verified badge for original post author when verified', () => {
+      render(
+        <ThreadPost
+          {...defaultProps}
+          isQuoteRepost={true}
+          originalPost={{
+            author: { username: 'verifiedauthor', verified: true },
+            content: 'Verified post content',
+          }}
+        />
+      )
+
+      const badges = document.querySelectorAll('.text-blue-500')
+      expect(badges.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should not render original post when isQuoteRepost is false', () => {
+      render(
+        <ThreadPost
+          {...defaultProps}
+          isQuoteRepost={false}
+          originalPost={{
+            author: { username: 'originalauthor' },
+            content: 'Original post content',
+          }}
+        />
+      )
+
+      expect(screen.queryByText('@originalauthor')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('action button aria labels', () => {
+    it('should have correct aria-label for like button when not liked', () => {
+      render(<ThreadPost {...defaultProps} isLiked={false} />)
+
+      const likeButton = screen.getByLabelText('Like this post')
+      expect(likeButton).toBeInTheDocument()
+    })
+
+    it('should have correct aria-label for like button when liked', () => {
+      render(<ThreadPost {...defaultProps} isLiked={true} />)
+
+      const unlikeButton = screen.getByLabelText('Unlike this post')
+      expect(unlikeButton).toBeInTheDocument()
+    })
+
+    it('should have aria-pressed attribute on like button', () => {
+      render(<ThreadPost {...defaultProps} isLiked={true} />)
+
+      const likeButton = screen.getByLabelText('Unlike this post')
+      expect(likeButton).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('should have aria-label for reply button', () => {
+      render(<ThreadPost {...defaultProps} />)
+
+      const replyButton = screen.getByLabelText('Reply to this post')
+      expect(replyButton).toBeInTheDocument()
+    })
+
+    it('should have aria-label for share button', () => {
+      render(<ThreadPost {...defaultProps} />)
+
+      const shareButton = screen.getByLabelText('Share this post')
+      expect(shareButton).toBeInTheDocument()
+    })
+
+    it('should have actions group with correct aria role', () => {
+      render(<ThreadPost {...defaultProps} />)
+
+      const actionsGroup = screen.getByRole('group', { name: 'Post actions' })
+      expect(actionsGroup).toBeInTheDocument()
     })
   })
 })

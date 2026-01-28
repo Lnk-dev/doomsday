@@ -154,4 +154,121 @@ describe('Posts Store', () => {
       expect(retrieved).toBeUndefined()
     })
   })
+
+  describe('repostPost', () => {
+    it('should create a repost and add to feed', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const reposterAuthor = { address: 'addr2', username: 'reposter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      const repost = usePostsStore.getState().repostPost(original.id, 'reposter-id', reposterAuthor)
+
+      expect(repost).not.toBeNull()
+      expect(repost?.content).toBe('Original content')
+      expect(repost?.author.username).toBe('original')
+      expect(repost?.repostedBy?.username).toBe('reposter')
+      expect(repost?.originalPostId).toBe(original.id)
+
+      const state = usePostsStore.getState()
+      expect(state.doomFeed).toContain(repost?.id)
+    })
+
+    it('should increment reposts count on original post', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const reposterAuthor = { address: 'addr2', username: 'reposter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      usePostsStore.getState().repostPost(original.id, 'reposter-id', reposterAuthor)
+
+      const updatedOriginal = usePostsStore.getState().posts[original.id]
+      expect(updatedOriginal.reposts).toBe(1)
+      expect(updatedOriginal.repostedByUsers).toContain('reposter-id')
+    })
+
+    it('should not allow reposting own posts', () => {
+      const author = { address: 'addr1', username: 'testuser' }
+      const post = usePostsStore.getState().createPost('Test content', 'doom', author)
+
+      const repost = usePostsStore.getState().repostPost(post.id, 'user-id', author)
+      expect(repost).toBeNull()
+    })
+
+    it('should not allow duplicate reposts', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const reposterAuthor = { address: 'addr2', username: 'reposter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      usePostsStore.getState().repostPost(original.id, 'reposter-id', reposterAuthor)
+      const duplicate = usePostsStore.getState().repostPost(original.id, 'reposter-id', reposterAuthor)
+
+      expect(duplicate).toBeNull()
+
+      const updatedOriginal = usePostsStore.getState().posts[original.id]
+      expect(updatedOriginal.reposts).toBe(1)
+    })
+  })
+
+  describe('quoteRepost', () => {
+    it('should create a quote repost with custom content', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const quoterAuthor = { address: 'addr2', username: 'quoter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      const quote = usePostsStore.getState().quoteRepost(original.id, 'quoter-id', quoterAuthor, 'My thoughts on this')
+
+      expect(quote).not.toBeNull()
+      expect(quote?.content).toBe('My thoughts on this')
+      expect(quote?.author.username).toBe('quoter')
+      expect(quote?.originalPostId).toBe(original.id)
+      expect(quote?.quoteContent).toBe('My thoughts on this')
+    })
+
+    it('should not create quote repost with empty content', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const quoterAuthor = { address: 'addr2', username: 'quoter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      const quote = usePostsStore.getState().quoteRepost(original.id, 'quoter-id', quoterAuthor, '   ')
+
+      expect(quote).toBeNull()
+    })
+  })
+
+  describe('unrepostPost', () => {
+    it('should remove repost and decrement count', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const reposterAuthor = { address: 'addr2', username: 'reposter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      const repost = usePostsStore.getState().repostPost(original.id, 'reposter', reposterAuthor)
+
+      expect(repost).not.toBeNull()
+
+      usePostsStore.getState().unrepostPost(original.id, 'reposter')
+
+      const state = usePostsStore.getState()
+      expect(state.posts[repost!.id]).toBeUndefined()
+      expect(state.posts[original.id].reposts).toBe(0)
+      expect(state.posts[original.id].repostedByUsers).not.toContain('reposter')
+    })
+  })
+
+  describe('hasReposted', () => {
+    it('should return true if user has reposted', () => {
+      const originalAuthor = { address: 'addr1', username: 'original' }
+      const reposterAuthor = { address: 'addr2', username: 'reposter' }
+
+      const original = usePostsStore.getState().createPost('Original content', 'doom', originalAuthor)
+      usePostsStore.getState().repostPost(original.id, 'reposter-id', reposterAuthor)
+
+      expect(usePostsStore.getState().hasReposted(original.id, 'reposter-id')).toBe(true)
+    })
+
+    it('should return false if user has not reposted', () => {
+      const author = { address: 'addr1', username: 'testuser' }
+      const post = usePostsStore.getState().createPost('Test content', 'doom', author)
+
+      expect(usePostsStore.getState().hasReposted(post.id, 'other-user')).toBe(false)
+    })
+  })
 })

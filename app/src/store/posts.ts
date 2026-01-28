@@ -39,6 +39,14 @@ interface PostsState {
   getFeed: (variant: PostVariant) => Post[]
   /** Get a single post by ID */
   getPost: (postId: ID) => Post | undefined
+  /** Simple repost - shares post to feed */
+  repostPost: (postId: ID, userId: ID, userAuthor: Author) => Post | null
+  /** Quote repost - shares with commentary */
+  quoteRepost: (postId: ID, userId: ID, userAuthor: Author, quoteContent: string) => Post | null
+  /** Remove a repost */
+  unrepostPost: (postId: ID, userId: ID) => void
+  /** Check if user has reposted a post */
+  hasReposted: (postId: ID, userId: ID) => boolean
 }
 
 /**
@@ -55,6 +63,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 42,
     reposts: 12,
     likedBy: [],
+    repostedByUsers: [],
   },
   'post-2': {
     id: 'post-2',
@@ -66,6 +75,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 156,
     reposts: 45,
     likedBy: [],
+    repostedByUsers: [],
   },
   'post-3': {
     id: 'post-3',
@@ -77,6 +87,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 89,
     reposts: 67,
     likedBy: [],
+    repostedByUsers: [],
   },
   'post-4': {
     id: 'post-4',
@@ -88,6 +99,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 67,
     reposts: 23,
     likedBy: [],
+    repostedByUsers: [],
   },
   'post-5': {
     id: 'post-5',
@@ -99,6 +111,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 234,
     reposts: 156,
     likedBy: [],
+    repostedByUsers: [],
   },
   'life-1': {
     id: 'life-1',
@@ -110,6 +123,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 23,
     reposts: 8,
     likedBy: [],
+    repostedByUsers: [],
   },
   'life-2': {
     id: 'life-2',
@@ -121,6 +135,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 34,
     reposts: 12,
     likedBy: [],
+    repostedByUsers: [],
   },
   'life-3': {
     id: 'life-3',
@@ -132,6 +147,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 156,
     reposts: 89,
     likedBy: [],
+    repostedByUsers: [],
   },
   'life-4': {
     id: 'life-4',
@@ -143,6 +159,7 @@ const initialPosts: Record<ID, Post> = {
     replies: 189,
     reposts: 134,
     likedBy: [],
+    repostedByUsers: [],
   },
 }
 
@@ -224,6 +241,131 @@ export const usePostsStore = create<PostsState>()(
 
       getPost: (postId) => {
         return get().posts[postId]
+      },
+
+      repostPost: (postId, userId, userAuthor) => {
+        const state = get()
+        const originalPost = state.posts[postId]
+
+        if (!originalPost) return null
+
+        // Prevent reposting own posts
+        if (originalPost.author.username === userAuthor.username) return null
+
+        // Prevent duplicate reposts
+        if (originalPost.repostedByUsers?.includes(userId)) return null
+
+        const repost: Post = {
+          id: generateId(),
+          author: originalPost.author,
+          content: originalPost.content,
+          variant: originalPost.variant,
+          createdAt: originalPost.createdAt,
+          likes: 0,
+          replies: 0,
+          reposts: 0,
+          likedBy: [],
+          repostedByUsers: [],
+          originalPostId: originalPost.originalPostId || originalPost.id,
+          repostedBy: userAuthor,
+          repostedAt: now(),
+        }
+
+        set((state) => ({
+          posts: {
+            ...state.posts,
+            [repost.id]: repost,
+            [postId]: {
+              ...state.posts[postId],
+              reposts: state.posts[postId].reposts + 1,
+              repostedByUsers: [...(state.posts[postId].repostedByUsers || []), userId],
+            },
+          },
+          doomFeed:
+            repost.variant === 'doom' ? [repost.id, ...state.doomFeed] : state.doomFeed,
+          lifeFeed:
+            repost.variant === 'life' ? [repost.id, ...state.lifeFeed] : state.lifeFeed,
+        }))
+
+        return repost
+      },
+
+      quoteRepost: (postId, userId, userAuthor, quoteContent) => {
+        const state = get()
+        const originalPost = state.posts[postId]
+
+        if (!originalPost || !quoteContent.trim()) return null
+
+        const quotePost: Post = {
+          id: generateId(),
+          author: userAuthor,
+          content: sanitizeText(quoteContent),
+          variant: originalPost.variant,
+          createdAt: now(),
+          likes: 0,
+          replies: 0,
+          reposts: 0,
+          likedBy: [],
+          repostedByUsers: [],
+          originalPostId: originalPost.originalPostId || originalPost.id,
+          quoteContent: sanitizeText(quoteContent),
+          repostedAt: now(),
+        }
+
+        set((state) => ({
+          posts: {
+            ...state.posts,
+            [quotePost.id]: quotePost,
+            [postId]: {
+              ...state.posts[postId],
+              reposts: state.posts[postId].reposts + 1,
+              repostedByUsers: [...(state.posts[postId].repostedByUsers || []), userId],
+            },
+          },
+          doomFeed:
+            quotePost.variant === 'doom' ? [quotePost.id, ...state.doomFeed] : state.doomFeed,
+          lifeFeed:
+            quotePost.variant === 'life' ? [quotePost.id, ...state.lifeFeed] : state.lifeFeed,
+        }))
+
+        return quotePost
+      },
+
+      unrepostPost: (postId, userId) => {
+        set((state) => {
+          const post = state.posts[postId]
+          if (!post) return state
+
+          // Find and remove the repost from feeds
+          const repostToRemove = Object.values(state.posts).find(
+            (p) => p.originalPostId === postId && p.repostedBy?.username === userId
+          )
+
+          if (!repostToRemove) return state
+
+          const remainingPosts = Object.fromEntries(
+            Object.entries(state.posts).filter(([id]) => id !== repostToRemove.id)
+          )
+
+          return {
+            posts: {
+              ...remainingPosts,
+              [postId]: {
+                ...post,
+                reposts: Math.max(0, post.reposts - 1),
+                repostedByUsers: (post.repostedByUsers || []).filter((id) => id !== userId),
+              },
+            },
+            doomFeed: state.doomFeed.filter((id) => id !== repostToRemove.id),
+            lifeFeed: state.lifeFeed.filter((id) => id !== repostToRemove.id),
+          }
+        })
+      },
+
+      hasReposted: (postId, userId) => {
+        const state = get()
+        const post = state.posts[postId]
+        return post?.repostedByUsers?.includes(userId) ?? false
       },
     }),
     {

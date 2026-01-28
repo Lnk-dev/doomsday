@@ -1,10 +1,13 @@
 /**
  * ShareModal Component
+ * Issue #49: Accessibility improvements (WCAG 2.1)
  *
  * Modal for sharing posts via various methods:
  * - Copy link
  * - Share to Twitter/X
  * - Share via native share API
+ *
+ * Includes proper ARIA attributes for screen readers.
  */
 
 import { X, Link2, Twitter, MessageCircle, Check } from 'lucide-react'
@@ -89,28 +92,35 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
   ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
       <div className="relative w-full max-w-lg bg-[#1a1a1a] rounded-t-3xl animate-slide-up">
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-[#333]" />
+          <div className="w-10 h-1 rounded-full bg-[#333]" aria-hidden="true" />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pb-4">
-          <h2 className="text-[17px] font-semibold text-white">Share post</h2>
+          <h2 id="share-modal-title" className="text-[17px] font-semibold text-white">Share post</h2>
           <button
             onClick={onClose}
-            className="p-2 -mr-2 rounded-full hover:bg-[#333] transition-colors"
+            aria-label="Close share dialog"
+            className="p-2 -mr-2 rounded-full hover:bg-[#333] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a]"
           >
-            <X size={20} className="text-[#777]" />
+            <X size={20} className="text-[#777]" aria-hidden="true" />
           </button>
         </div>
 
@@ -120,14 +130,15 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
         </div>
 
         {/* Share options */}
-        <div className="grid grid-cols-3 gap-3 px-4 pb-6">
+        <div className="grid grid-cols-3 gap-3 px-4 pb-6" role="group" aria-label="Share options">
           {shareOptions.map((option) => {
             const Icon = option.icon
             return (
               <button
                 key={option.id}
                 onClick={option.onClick}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-colors ${
+                aria-label={option.label}
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1a1a1a] ${
                   option.highlight
                     ? 'bg-[#00ba7c20] text-[#00ba7c]'
                     : 'bg-[#222] text-white hover:bg-[#333]'
@@ -137,6 +148,7 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
                   className={`w-12 h-12 rounded-full flex items-center justify-center ${
                     option.highlight ? 'bg-[#00ba7c30]' : 'bg-[#333]'
                   }`}
+                  aria-hidden="true"
                 >
                   <Icon size={22} />
                 </div>

@@ -23,11 +23,11 @@ import { useMemo, useEffect, useState, useRef } from 'react'
 
 /** Navigation items configuration */
 const navItems = [
-  { to: '/', icon: Home, notifyKey: 'doom' as const },
-  { to: '/events', icon: Search, notifyKey: 'events' as const },
-  { to: '/compose', icon: PenSquare, notifyKey: null },
-  { to: '/life', icon: Heart, notifyKey: 'life' as const },
-  { to: '/profile', icon: User, notifyKey: null },
+  { to: '/', icon: Home, notifyKey: 'doom' as const, label: 'Home feed' },
+  { to: '/events', icon: Search, notifyKey: 'events' as const, label: 'Events and predictions' },
+  { to: '/compose', icon: PenSquare, notifyKey: null, label: 'Create post' },
+  { to: '/life', icon: Heart, notifyKey: 'life' as const, label: 'Life feed' },
+  { to: '/profile', icon: User, notifyKey: null, label: 'Profile' },
 ]
 
 export function BottomNav() {
@@ -95,24 +95,32 @@ export function BottomNav() {
   }, [location.pathname])
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50">
-      <div className="flex justify-around items-center h-12 max-w-lg mx-auto">
-        {navItems.map(({ to, icon: Icon, notifyKey }) => (
+    <nav
+      className="fixed bottom-0 left-0 right-0 bg-black border-t border-[#333] pb-safe z-50"
+      aria-label="Main navigation"
+    >
+      <div className="flex justify-around items-center h-12 max-w-lg mx-auto" role="menubar">
+        {navItems.map(({ to, icon: Icon, notifyKey, label }) => (
           <NavLink
             key={to}
             to={to}
+            aria-label={notifyKey && hasNewContent[notifyKey] ? `${label} (new content)` : label}
+            role="menuitem"
             className={({ isActive }) =>
-              `relative flex items-center justify-center w-12 h-12 transition-colors ${
+              `relative flex items-center justify-center w-12 h-12 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-lg ${
                 isActive ? 'text-white' : 'text-[#777]'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={26} strokeWidth={isActive ? 2.5 : 1.5} />
+                <Icon size={26} strokeWidth={isActive ? 2.5 : 1.5} aria-hidden="true" />
                 {/* Notification dot */}
                 {notifyKey && hasNewContent[notifyKey] && !isActive && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff3040]" />
+                  <span
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff3040]"
+                    aria-hidden="true"
+                  />
                 )}
               </>
             )}

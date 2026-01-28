@@ -28,7 +28,6 @@ const PrivacyPage = lazy(() => import('@/pages/PrivacyPage').then(m => ({ defaul
 const LandingPage = lazy(() => import('@/pages/LandingPage').then(m => ({ default: m.LandingPage })))
 const HelpPage = lazy(() => import('@/pages/HelpPage').then(m => ({ default: m.HelpPage })))
 const NotificationSettingsPage = lazy(() => import('@/pages/NotificationSettingsPage').then(m => ({ default: m.NotificationSettingsPage })))
-const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })))
 
 /** Loading spinner shown during lazy load */
@@ -159,11 +158,6 @@ function App() {
           <Route path="/settings/notifications" element={
             <Suspense fallback={<PageLoader />}>
               <NotificationSettingsPage />
-            </Suspense>
-          } />
-          <Route path="/status" element={
-            <Suspense fallback={<PageLoader />}>
-              <StatusPage />
             </Suspense>
           } />
           <Route path="*" element={

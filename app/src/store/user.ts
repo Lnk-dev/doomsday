@@ -21,6 +21,10 @@ interface UserState {
   userId: ID
   /** User's display author info */
   author: Author
+  /** User's display name */
+  displayName: string
+  /** User's bio */
+  bio: string
   /** $DOOM token balance */
   doomBalance: number
   /** $LIFE token balance */
@@ -59,6 +63,8 @@ interface UserState {
   followUser: (username: string) => void
   /** Unfollow a user */
   unfollowUser: (username: string) => void
+  /** Update user profile */
+  updateProfile: (updates: { displayName?: string; bio?: string; avatar?: string }) => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -69,6 +75,8 @@ export const useUserStore = create<UserState>()(
         address: null,
         username: 'anonymous',
       },
+      displayName: '',
+      bio: '',
       doomBalance: 100, // Start with some tokens for testing
       lifeBalance: 0,
       daysLiving: 0,
@@ -147,6 +155,16 @@ export const useUserStore = create<UserState>()(
       unfollowUser: (username) => {
         set((state) => ({
           following: state.following.filter((u) => u !== username),
+        }))
+      },
+
+      updateProfile: (updates) => {
+        set((state) => ({
+          displayName: updates.displayName !== undefined ? updates.displayName : state.displayName,
+          bio: updates.bio !== undefined ? updates.bio : state.bio,
+          author: updates.avatar !== undefined
+            ? { ...state.author, avatar: updates.avatar }
+            : state.author,
         }))
       },
     }),

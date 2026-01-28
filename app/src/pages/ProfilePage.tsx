@@ -13,10 +13,11 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ProfileShareModal } from '@/components/ui/ProfileShareModal'
 import { ProfileEditModal } from '@/components/ui/ProfileEditModal'
+import { StreakDisplay } from '@/components/ui/StreakDisplay'
 import { Settings, Globe, TrendingUp, Clock, AlertTriangle, Sparkles, Heart, ChevronRight } from 'lucide-react'
-import { useUserStore, usePostsStore, useEventsStore } from '@/store'
+import { useUserStore, usePostsStore, useEventsStore, useStreaksStore } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 type ProfileTab = 'threads' | 'bets' | 'replies'
@@ -26,6 +27,14 @@ export function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
   const [showShareModal, setShowShareModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+
+  // Streak store
+  const checkStreak = useStreaksStore((state) => state.checkStreak)
+
+  // Check streak status on mount
+  useEffect(() => {
+    checkStreak()
+  }, [checkStreak])
 
   // User store
   const author = useUserStore((state) => state.author)
@@ -103,6 +112,8 @@ export function ProfilePage() {
           <span>0 followers</span>
           <span>·</span>
           <span>{userPosts.length} posts</span>
+          <span>·</span>
+          <StreakDisplay compact />
         </div>
 
         {/* Action buttons */}
@@ -174,6 +185,11 @@ export function ProfilePage() {
         </div>
         <ChevronRight size={20} className="text-[#00ba7c]" />
       </button>
+
+      {/* Daily Streak */}
+      <div className="mx-4 mb-4">
+        <StreakDisplay />
+      </div>
 
       {/* Tabs */}
       <div className="flex border-b border-[#333]">

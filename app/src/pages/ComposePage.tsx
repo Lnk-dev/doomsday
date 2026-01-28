@@ -15,7 +15,7 @@ import { FormField } from '@/components/ui/FormField'
 import { X, Image, Globe, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useMemo, useCallback } from 'react'
-import { usePostsStore, useUserStore } from '@/store'
+import { usePostsStore, useUserStore, useStreaksStore } from '@/store'
 import { useBadgeChecker } from '@/hooks/useBadgeChecker'
 import { required, minLength, maxLength, validateField } from '@/lib/validation'
 import type { PostVariant } from '@/types'
@@ -45,6 +45,7 @@ export function ComposePage() {
   const daysLiving = useUserStore((state) => state.daysLiving)
   const spendDoom = useUserStore((state) => state.spendDoom)
   const incrementLifePosts = useUserStore((state) => state.incrementLifePosts)
+  const recordActivity = useStreaksStore((state) => state.recordActivity)
 
   // Compute life post cost
   const lifePostCost = useMemo(() => {
@@ -97,6 +98,8 @@ export function ComposePage() {
       // Deduct cost
       spendDoom(lifePostCost)
       incrementLifePosts()
+      // Record activity for streak tracking
+      recordActivity()
     }
 
     // Create post

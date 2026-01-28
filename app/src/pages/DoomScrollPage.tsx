@@ -14,7 +14,7 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
-import { Flame, Clock, TrendingUp } from 'lucide-react'
+import { Flame, Clock, TrendingUp, UserPlus } from 'lucide-react'
 import { usePostsStore, useUserStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
 import { useState, useMemo } from 'react'
@@ -44,15 +44,24 @@ export function DoomScrollPage() {
   const likePost = usePostsStore((state) => state.likePost)
   const unlikePost = usePostsStore((state) => state.unlikePost)
   const userId = useUserStore((state) => state.userId)
+  const following = useUserStore((state) => state.following)
 
   // Compute feed from raw data
   const posts = useMemo(() => {
     return doomFeed.map((id) => allPosts[id]).filter(Boolean)
   }, [allPosts, doomFeed])
 
+  // Filter posts based on active tab
+  const filteredPosts = useMemo(() => {
+    if (activeTab === 'following') {
+      return posts.filter((post) => following.includes(post.author.username))
+    }
+    return posts
+  }, [posts, activeTab, following])
+
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {
-    const sorted = [...posts]
+    const sorted = [...filteredPosts]
     switch (sortBy) {
       case 'hot':
         return sorted.sort((a, b) => getHotScore(b) - getHotScore(a))
@@ -63,7 +72,7 @@ export function DoomScrollPage() {
       default:
         return sorted
     }
-  }, [posts, sortBy])
+  }, [filteredPosts, sortBy])
 
   /** Handle like button click */
   const handleLike = (postId: string, isLiked: boolean) => {
@@ -153,9 +162,23 @@ export function DoomScrollPage() {
       {/* Empty state */}
       {sortedPosts.length === 0 && (
         <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
-          <p className="text-[15px] text-[#777] text-center">
-            No doom to scroll yet.
-          </p>
+          {activeTab === 'following' ? (
+            <>
+              <UserPlus size={48} className="text-[#333] mb-4" />
+              <p className="text-[15px] text-[#777] text-center">
+                {following.length === 0
+                  ? "You're not following anyone yet."
+                  : "No posts from people you follow."}
+              </p>
+              <p className="text-[13px] text-[#555] text-center mt-1">
+                Follow doomers to see their posts here.
+              </p>
+            </>
+          ) : (
+            <p className="text-[15px] text-[#777] text-center">
+              No doom to scroll yet.
+            </p>
+          )}
         </div>
       )}
 

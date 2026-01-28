@@ -31,10 +31,14 @@ interface UserState {
   lifePosts: number
   /** Is wallet connected */
   isConnected: boolean
+  /** List of followed usernames */
+  following: string[]
 
   // Computed
   /** Calculate cost of next life post */
   getLifePostCost: () => number
+  /** Check if following a user */
+  isFollowing: (username: string) => boolean
 
   // Actions
   /** Update username */
@@ -51,6 +55,10 @@ interface UserState {
   donateLife: (amount: number) => boolean
   /** Add $LIFE tokens */
   addLife: (amount: number) => void
+  /** Follow a user */
+  followUser: (username: string) => void
+  /** Unfollow a user */
+  unfollowUser: (username: string) => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -66,12 +74,17 @@ export const useUserStore = create<UserState>()(
       daysLiving: 0,
       lifePosts: 0,
       isConnected: false,
+      following: [],
 
       getLifePostCost: () => {
         const { lifePosts, daysLiving } = get()
         // Cost increases with post history
         // Base cost: 1 $DOOM, +1 for each day of life
         return Math.max(1, daysLiving + 1) + Math.floor(lifePosts / 10)
+      },
+
+      isFollowing: (username) => {
+        return get().following.includes(username)
       },
 
       setUsername: (username) => {
@@ -120,6 +133,20 @@ export const useUserStore = create<UserState>()(
       addLife: (amount) => {
         set((state) => ({
           lifeBalance: state.lifeBalance + amount,
+        }))
+      },
+
+      followUser: (username) => {
+        set((state) => ({
+          following: state.following.includes(username)
+            ? state.following
+            : [...state.following, username],
+        }))
+      },
+
+      unfollowUser: (username) => {
+        set((state) => ({
+          following: state.following.filter((u) => u !== username),
         }))
       },
     }),

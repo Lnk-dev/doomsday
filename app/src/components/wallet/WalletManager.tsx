@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Wallet, Star, Edit2, Trash2, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { useWalletStore, shortenAddress, getWalletDisplayName } from '@/store'
-import type { WalletInfo, ConnectionHistoryEntry } from '@/store'
+import type { ConnectionHistoryEntry } from '@/store'
 
 export function WalletManager() {
   const [editingWallet, setEditingWallet] = useState<string | null>(null)

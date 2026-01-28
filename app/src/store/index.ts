@@ -53,8 +53,8 @@ export type {
   RealityCheck,
   ResponsibleGamblingState,
 } from './responsibleGambling'
-export { useFeatureFlagsStore } from './featureFlags'
-export type { FeatureFlagState } from './featureFlags'
+export { useFeatureFlagsStore, FEATURE_FLAG_IDS } from './featureFlags'
+export type { FeatureFlag, FeatureFlagId } from './featureFlags'
 export { usePredictionsStore } from './predictions'
 export type { Prediction, PredictionStats } from './predictions'
 export { useReportsStore } from './reports'

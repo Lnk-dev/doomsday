@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { WalletProvider } from '@/providers/WalletProvider'
 import { Loader2 } from 'lucide-react'
+import { useThemeStore } from '@/store'
 import './index.css'
 
 // Lazy load page components for code splitting
@@ -28,6 +29,13 @@ function PageLoader() {
 }
 
 function App() {
+  const initTheme = useThemeStore((state) => state.initTheme)
+
+  // Initialize theme on app load
+  useEffect(() => {
+    initTheme()
+  }, [initTheme])
+
   return (
     <WalletProvider>
       <BrowserRouter>

@@ -20,7 +20,8 @@ export {
   getRarityBgColor,
 } from './badges'
 export type { Badge, BadgeRarity, BadgeCategory, EarnedBadge } from './badges'
-export { useWalletStore } from './wallet'
+export { useWalletStore, shortenAddress, getWalletDisplayName } from './wallet'
+export type { WalletInfo, ConnectionHistoryEntry } from './wallet'
 export {
   useTransactionStore,
   useRecentTransactions,

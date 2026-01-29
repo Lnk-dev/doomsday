@@ -10,6 +10,7 @@ import { closeRedis } from './lib/cache'
 import { requestLogger } from './middleware/logger'
 import { requestId } from './middleware/requestId'
 import { apiSecurityHeaders } from './middleware/security'
+import { enforceHttps, tlsHeaders } from './middleware/tls'
 import { initializeWebSocket, getConnectionStats } from './lib/websocket'
 import authRouter from './routes/auth'
 import postsRouter from './routes/posts'
@@ -29,6 +30,8 @@ initSentry()
 
 const app = new Hono()
 
+app.use('*', enforceHttps)
+app.use('*', tlsHeaders)
 app.use('*', requestId)
 app.use('*', apiSecurityHeaders)
 app.use('*', cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))

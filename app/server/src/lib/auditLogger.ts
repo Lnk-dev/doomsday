@@ -603,6 +603,35 @@ export const audit = {
         resourceId: user.userId,
         details: { targetUsername: user.username },
       }),
+
+    accountDeleted: (
+      requestedBy: string,
+      details: {
+        targetUserId: string
+        originalUsername: string
+        deletedRecords: {
+          posts: number
+          comments: number
+          likes: number
+          follows: number
+        }
+        reason?: string
+      }
+    ) =>
+      logAudit({
+        actorId: requestedBy,
+        actorType: 'user',
+        action: 'user.account_deleted',
+        category: 'user',
+        severity: 'critical',
+        resourceType: 'user',
+        resourceId: details.targetUserId,
+        details: {
+          originalUsername: details.originalUsername,
+          deletedRecords: details.deletedRecords,
+        },
+        reason: details.reason || 'GDPR right to erasure request',
+      }),
   },
 
   // Content moderation events

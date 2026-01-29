@@ -36,6 +36,7 @@ const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').t
 const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
+const EmbedPostPage = lazy(() => import('@/pages/EmbedPostPage').then(m => ({ default: m.EmbedPostPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -69,6 +70,12 @@ function App() {
           <Route path="/onboarding" element={
             <Suspense fallback={<PageLoader />}>
               <OnboardingPage />
+            </Suspense>
+          } />
+          {/* Embed pages outside AppLayout */}
+          <Route path="/embed/post/:postId" element={
+            <Suspense fallback={<PageLoader />}>
+              <EmbedPostPage />
             </Suspense>
           } />
         <Route element={<AppLayout />}>

@@ -13,6 +13,7 @@ import postsRouter from './routes/posts'
 import usersRouter from './routes/users'
 import eventsRouter from './routes/events'
 import healthRouter from './routes/health'
+import adminAuthRouter from './routes/admin/auth'
 
 initSentry()
 
@@ -26,6 +27,7 @@ app.route('/posts', postsRouter)
 app.route('/users', usersRouter)
 app.route('/events', eventsRouter)
 app.route('/health', healthRouter)
+app.route('/admin/auth', adminAuthRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

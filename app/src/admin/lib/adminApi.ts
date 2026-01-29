@@ -6,7 +6,7 @@
 
 import type {
   LoginRequest,
-  LoginResponse,
+  LoginResponseWith2FA,
   AdminUser,
   UserFilters,
   PaginatedUsers,
@@ -23,6 +23,13 @@ import type {
   EventResolutionDetails,
   ResolveEventRequest,
   VoidEventRequest,
+  TwoFactorSetupResponse,
+  TwoFactorVerifyRequest,
+  TwoFactorVerifyResponse,
+  TwoFactorDisableRequest,
+  TwoFactorRegenerateRequest,
+  TwoFactorRegenerateResponse,
+  Verify2FARequest,
 } from '../types/admin'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -92,11 +99,31 @@ class AdminApiClient {
   // Authentication
   // ============================================================================
 
-  async login(credentials: LoginRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/login', {
+  async login(credentials: LoginRequest): Promise<LoginResponseWith2FA> {
+    return this.request<LoginResponseWith2FA>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     })
+  }
+
+  async verify2FA(request: Verify2FARequest, tempToken: string): Promise<LoginResponseWith2FA> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tempToken}`,
+    }
+
+    const response = await fetch(`${API_BASE}/admin/auth/verify-2fa`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(request),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }))
+      throw new Error(error.error || 'Invalid 2FA code')
+    }
+
+    return response.json()
   }
 
   async logout(): Promise<void> {
@@ -105,6 +132,37 @@ class AdminApiClient {
 
   async validateSession(): Promise<AdminUser> {
     return this.request<AdminUser>('/auth/me')
+  }
+
+  // ============================================================================
+  // Two-Factor Authentication
+  // ============================================================================
+
+  async setup2FA(): Promise<TwoFactorSetupResponse> {
+    return this.request<TwoFactorSetupResponse>('/auth/2fa/setup', {
+      method: 'POST',
+    })
+  }
+
+  async verifySetup2FA(request: TwoFactorVerifyRequest): Promise<TwoFactorVerifyResponse> {
+    return this.request<TwoFactorVerifyResponse>('/auth/2fa/verify-setup', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  }
+
+  async disable2FA(request: TwoFactorDisableRequest): Promise<void> {
+    await this.request<void>('/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  }
+
+  async regenerateBackupCodes(request: TwoFactorRegenerateRequest): Promise<TwoFactorRegenerateResponse> {
+    return this.request<TwoFactorRegenerateResponse>('/auth/2fa/regenerate-backup-codes', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
   }
 
   // ============================================================================

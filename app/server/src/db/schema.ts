@@ -8,6 +8,7 @@ import { relations } from 'drizzle-orm'
 export const postVariantEnum = pgEnum('post_variant', ['doom', 'life'])
 export const eventStatusEnum = pgEnum('event_status', ['active', 'resolved_doom', 'resolved_life', 'cancelled'])
 export const betOutcomeEnum = pgEnum('bet_outcome', ['doom', 'life'])
+export const adminRoleEnum = pgEnum('admin_role', ['super_admin', 'moderator', 'analyst', 'support'])
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -24,6 +25,37 @@ export const users = pgTable('users', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (t) => [index('users_wallet_idx').on(t.walletAddress), index('users_username_idx').on(t.username)])
+
+// Admin users for dashboard access
+export const adminUsers = pgTable('admin_users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  username: text('username').notNull().unique(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  role: adminRoleEnum('role').notNull().default('support'),
+  // Two-factor authentication
+  twoFactorEnabled: boolean('two_factor_enabled').default(false),
+  twoFactorSecret: text('two_factor_secret'), // Encrypted TOTP secret
+  twoFactorBackupCodes: text('two_factor_backup_codes'), // JSON array of hashed backup codes
+  // Session management
+  lastLoginAt: timestamp('last_login_at'),
+  failedLoginAttempts: integer('failed_login_attempts').default(0),
+  lockedUntil: timestamp('locked_until'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [index('admin_users_username_idx').on(t.username), index('admin_users_email_idx').on(t.email)])
+
+// Admin sessions for tracking active sessions
+export const adminSessions = pgTable('admin_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  adminId: uuid('admin_id').notNull().references(() => adminUsers.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('admin_sessions_admin_idx').on(t.adminId), index('admin_sessions_token_idx').on(t.token)])
 
 export const posts = pgTable('posts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -98,3 +130,5 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
+export type AdminUser = typeof adminUsers.$inferSelect
+export type AdminSession = typeof adminSessions.$inferSelect

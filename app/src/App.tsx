@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { WalletProvider } from '@/providers/WalletProvider'
 import { RouteErrorBoundary } from '@/components/error'
+import { PWAInstallPrompt, PWAUpdatePrompt } from '@/components/pwa'
 import { Loader2 } from 'lucide-react'
 import { useThemeStore } from '@/store'
 import './index.css'
@@ -232,6 +233,9 @@ function App() {
         </Route>
         </Routes>
         </RouteErrorBoundary>
+        {/* PWA Components */}
+        <PWAInstallPrompt />
+        <PWAUpdatePrompt />
       </BrowserRouter>
     </WalletProvider>
   )

@@ -378,6 +378,7 @@ export function ProfilePage() {
                 isBookmarked={isBookmarked(post.id)}
                 onClick={() => navigate(`/post/${post.id}`)}
                 onBookmark={() => handleBookmarkToggle(post.id)}
+                media={post.media}
               />
             ))}
           </div>
@@ -519,6 +520,7 @@ export function ProfilePage() {
                   isBookmarked={true}
                   onClick={() => navigate(`/post/${post.id}`)}
                   onBookmark={() => handleBookmarkToggle(post.id)}
+                  media={post.media}
                 />
               </div>
             ))}

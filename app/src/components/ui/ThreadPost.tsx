@@ -16,6 +16,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Heart, MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal } from 'lucide-react'
 import { PostContent } from './PostContent'
+import { PostMediaGrid } from './PostMediaGrid'
+import { ImageLightbox } from './ImageLightbox'
+import type { MediaAttachment } from '@/types'
 
 interface ThreadPostProps {
   /** Post ID for navigation */
@@ -76,6 +79,8 @@ interface ThreadPostProps {
   isBookmarked?: boolean
   /** Callback when bookmark button is clicked */
   onBookmark?: () => void
+  /** Media attachments */
+  media?: MediaAttachment[]
 }
 
 export function ThreadPost({
@@ -100,6 +105,7 @@ export function ThreadPost({
   onQuoteRepost,
   isBookmarked = false,
   onBookmark,
+  media,
 }: ThreadPostProps) {
   // Determine accent color based on post variant
   const accentColor = variant === 'doom' ? '#ff3040' : variant === 'life' ? '#00ba7c' : '#777'
@@ -113,6 +119,15 @@ export function ThreadPost({
   // Repost menu state
   const [showRepostMenu, setShowRepostMenu] = useState(false)
   const repostMenuRef = useRef<HTMLDivElement>(null)
+
+  // Lightbox state for media
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  const handleMediaClick = (index: number) => {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -195,6 +210,11 @@ export function ThreadPost({
 
         {/* Post content with clickable hashtags */}
         <PostContent content={content} variant={variant} onClick={onClick} />
+
+        {/* Media attachments */}
+        {media && media.length > 0 && (
+          <PostMediaGrid media={media} onImageClick={handleMediaClick} />
+        )}
 
         {/* Quote repost embedded post */}
         {isQuoteRepost && originalPost && (
@@ -321,6 +341,16 @@ export function ThreadPost({
         )}
       </div>
       </div>
+
+      {/* Image lightbox */}
+      {media && media.length > 0 && (
+        <ImageLightbox
+          media={media}
+          initialIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </article>
   )
 }

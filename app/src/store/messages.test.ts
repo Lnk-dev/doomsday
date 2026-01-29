@@ -58,7 +58,8 @@ describe('messages store', () => {
     it('should set loading state when fetching', async () => {
       mockFetch.mockImplementation(() => new Promise(() => {})) // Never resolves
 
-      const fetchPromise = useMessagesStore.getState().fetchConversations('test-token')
+      // Start fetch but don't await - we just want to check loading state
+      void useMessagesStore.getState().fetchConversations('test-token')
 
       expect(useMessagesStore.getState().isLoadingConversations).toBe(true)
 

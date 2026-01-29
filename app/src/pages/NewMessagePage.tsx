@@ -109,8 +109,9 @@ export function NewMessagePage() {
           <button
             onClick={() => navigate('/messages')}
             className="p-2 -ml-2 text-[#777] hover:text-white rounded-full hover:bg-[#222]"
+            aria-label="Back to messages"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </button>
           <h1 className="text-lg font-semibold">New Message</h1>
         </div>
@@ -118,10 +119,10 @@ export function NewMessagePage() {
 
       {/* Error */}
       {error && (
-        <div className="mx-4 mt-4 p-3 bg-[#ff3040]/10 border border-[#ff3040]/30 rounded-lg flex items-center justify-between">
+        <div className="mx-4 mt-4 p-3 bg-[#ff3040]/10 border border-[#ff3040]/30 rounded-lg flex items-center justify-between" role="alert">
           <span className="text-sm text-[#ff3040]">{error}</span>
-          <button onClick={clearError} className="text-[#ff3040]">
-            <X className="w-4 h-4" />
+          <button onClick={clearError} className="text-[#ff3040]" aria-label="Dismiss error">
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -149,8 +150,9 @@ export function NewMessagePage() {
               <button
                 onClick={() => setSelectedUser(null)}
                 className="text-[#555] hover:text-white"
+                aria-label={`Remove ${selectedUser.displayName || selectedUser.username}`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -160,25 +162,29 @@ export function NewMessagePage() {
           {/* Search */}
           <div className="p-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#555]" aria-hidden="true" />
               <input
-                type="text"
+                type="search"
                 placeholder="Search for a user..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
                 className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:border-[#555]"
+                aria-label="Search for a user to message"
+                role="combobox"
+                aria-expanded={searchResults.length > 0}
+                aria-autocomplete="list"
               />
             </div>
           </div>
 
           {/* Search Results */}
           {isSearching ? (
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-4" role="status" aria-label="Searching...">
               <div className="w-5 h-5 border-2 border-[#ff3040] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : searchResults.length > 0 ? (
-            <div className="divide-y divide-[#222]">
+            <div className="divide-y divide-[#222]" role="listbox" aria-label="Search results">
               {searchResults.map((result) => (
                 <button
                   key={result.id}
@@ -188,6 +194,8 @@ export function NewMessagePage() {
                     setSearchResults([])
                   }}
                   className="w-full flex items-center gap-3 p-4 hover:bg-[#111] text-left"
+                  role="option"
+                  aria-selected={false}
                 >
                   {result.avatarUrl ? (
                     <img
@@ -196,7 +204,7 @@ export function NewMessagePage() {
                       className="w-10 h-10 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#333] flex items-center justify-center text-lg">
+                    <div className="w-10 h-10 rounded-full bg-[#333] flex items-center justify-center text-lg" aria-hidden="true">
                       {result.username[0].toUpperCase()}
                     </div>
                   )}
@@ -206,7 +214,7 @@ export function NewMessagePage() {
                         {result.displayName || result.username}
                       </span>
                       {result.verified && (
-                        <svg className="w-4 h-4 text-[#ff3040]" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="w-4 h-4 text-[#ff3040]" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified">
                           <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                         </svg>
                       )}
@@ -217,7 +225,7 @@ export function NewMessagePage() {
               ))}
             </div>
           ) : searchQuery.trim() && !isSearching ? (
-            <div className="text-center py-8 text-[#555]">
+            <div className="text-center py-8 text-[#555]" role="status">
               No users found
             </div>
           ) : null}
@@ -235,16 +243,18 @@ export function NewMessagePage() {
               rows={1}
               className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-2xl px-4 py-3 resize-none focus:outline-none focus:border-[#555] max-h-32"
               style={{ minHeight: '48px' }}
+              aria-label={`Message to ${selectedUser.displayName || selectedUser.username}`}
             />
             <button
               onClick={handleSend}
               disabled={!messageText.trim() || isSendingMessage}
               className="p-3 bg-[#ff3040] text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e02838] transition-colors"
+              aria-label={isSendingMessage ? 'Sending message...' : 'Send message'}
             >
               {isSendingMessage ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-5 h-5" aria-hidden="true" />
               )}
             </button>
           </div>

@@ -261,6 +261,7 @@ export function DoomScrollPage() {
                   onQuoteRepost={() => setQuotePost(post)}
                   isBookmarked={isBookmarked(post.id)}
                   onBookmark={() => handleBookmark(post.id)}
+                  media={post.media}
                 />
                 {/* Show personalization explanation for "For You" tab */}
                 {sortBy === 'personalized' && activeTab === 'foryou' && scoredPost?.explanation && (

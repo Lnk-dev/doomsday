@@ -192,6 +192,7 @@ export function LifePage() {
                 onQuoteRepost={() => setQuotePost(post)}
                 isBookmarked={isBookmarked(post.id)}
                 onBookmark={() => handleBookmark(post.id)}
+                media={post.media}
               />
               {/* Donate button (only for other users' posts) */}
               {!isOwnPost && (

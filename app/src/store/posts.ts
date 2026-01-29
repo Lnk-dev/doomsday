@@ -11,7 +11,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Post, PostVariant, Author, ID } from '@/types'
+import type { Post, PostVariant, Author, ID, MediaAttachment } from '@/types'
 import { sanitizeText } from '@/lib/sanitize'
 
 /** Generate unique ID */
@@ -30,7 +30,7 @@ interface PostsState {
 
   // Actions
   /** Create a new post */
-  createPost: (content: string, variant: PostVariant, author: Author) => Post
+  createPost: (content: string, variant: PostVariant, author: Author, media?: MediaAttachment[]) => Post
   /** Like a post */
   likePost: (postId: ID, userId: ID) => void
   /** Unlike a post */
@@ -175,7 +175,7 @@ export const usePostsStore = create<PostsState>()(
       doomFeed: initialDoomFeed,
       lifeFeed: initialLifeFeed,
 
-      createPost: (content, variant, author) => {
+      createPost: (content, variant, author, media) => {
         const post: Post = {
           id: generateId(),
           author,
@@ -186,6 +186,7 @@ export const usePostsStore = create<PostsState>()(
           replies: 0,
           reposts: 0,
           likedBy: [],
+          media: media && media.length > 0 ? media : undefined,
         }
 
         set((state) => ({

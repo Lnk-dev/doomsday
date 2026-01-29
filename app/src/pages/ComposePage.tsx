@@ -13,13 +13,16 @@
 import { PageHeader } from '@/components/layout/PageHeader'
 import { FormField } from '@/components/ui/FormField'
 import { MentionInput } from '@/components/ui/MentionInput'
-import { X, Image, Globe, AlertCircle } from 'lucide-react'
+import { ImagePicker } from '@/components/ui/ImagePicker'
+import { ImagePreviewGrid } from '@/components/ui/ImagePreviewGrid'
+import { X, Globe, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useMemo, useCallback } from 'react'
 import { usePostsStore, useUserStore, useStreaksStore, notifyMentionedUsers } from '@/store'
 import { useBadgeChecker } from '@/hooks/useBadgeChecker'
 import { required, minLength, maxLength, validateField } from '@/lib/validation'
 import { extractMentions } from '@/lib/mentions'
+import { fileToMediaAttachment } from '@/lib/media'
 import type { PostVariant } from '@/types'
 
 const MAX_LENGTH = 500
@@ -38,6 +41,8 @@ export function ComposePage() {
   const [postType, setPostType] = useState<PostVariant>('doom')
   const [error, setError] = useState<string | null>(null)
   const [touched, setTouched] = useState(false)
+  const [images, setImages] = useState<File[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Store hooks
   const createPost = usePostsStore((state) => state.createPost)
@@ -76,13 +81,16 @@ export function ComposePage() {
   }, [])
 
   /** Handle post submission */
-  const handlePost = () => {
+  const handlePost = async () => {
+    // Prevent double submission
+    if (isSubmitting) return
+
     // Mark as touched to show validation errors
     setTouched(true)
 
-    // Validate content
-    if (!isContentValid) {
-      setError(validationResult.error || 'Invalid post content')
+    // Validate content (allow empty content if images are attached)
+    if (!isContentValid && images.length === 0) {
+      setError(validationResult.error || 'Please add text or images')
       return
     }
 
@@ -99,31 +107,47 @@ export function ComposePage() {
       recordActivity()
     }
 
-    // Create post
-    const post = createPost(content.trim(), postType, author)
+    setIsSubmitting(true)
 
-    // Extract and notify mentioned users
-    const mentions = extractMentions(content.trim())
-    if (mentions.length > 0 && post) {
-      notifyMentionedUsers(post.id, mentions, author.username, content.trim().slice(0, 100))
-    }
+    try {
+      // Convert images to media attachments
+      const media = await Promise.all(images.map(fileToMediaAttachment))
 
-    // Check for badge unlocks after posting
-    // Use setTimeout to ensure the post is created before checking
-    setTimeout(() => {
-      checkAfterPost()
-    }, 100)
+      // Create post with media
+      const post = createPost(
+        content.trim(),
+        postType,
+        author,
+        media.length > 0 ? media : undefined
+      )
 
-    // Navigate back to appropriate feed
-    if (postType === 'doom') {
-      navigate('/')
-    } else {
-      navigate('/life')
+      // Extract and notify mentioned users
+      const mentions = extractMentions(content.trim())
+      if (mentions.length > 0 && post) {
+        notifyMentionedUsers(post.id, mentions, author.username, content.trim().slice(0, 100))
+      }
+
+      // Check for badge unlocks after posting
+      setTimeout(() => {
+        checkAfterPost()
+      }, 100)
+
+      // Navigate back to appropriate feed
+      if (postType === 'doom') {
+        navigate('/')
+      } else {
+        navigate('/life')
+      }
+    } catch (err) {
+      setError('Failed to upload images. Please try again.')
+      setIsSubmitting(false)
     }
   }
 
   const isSubmitDisabled =
-    !content.trim() || !isContentValid || (postType === 'life' && !canAffordLifePost)
+    isSubmitting ||
+    (!content.trim() && images.length === 0) ||
+    (postType === 'life' && !canAffordLifePost)
 
   return (
     <div className="flex flex-col min-h-full">
@@ -236,25 +260,39 @@ export function ComposePage() {
               autoFocus
             />
           </FormField>
+          {/* Image previews */}
+          <ImagePreviewGrid
+            images={images}
+            onRemove={(index) => setImages(images.filter((_, i) => i !== index))}
+          />
         </div>
       </div>
 
       {/* Bottom toolbar */}
       <div className="flex items-center justify-between px-4 py-3 border-t border-[#333]">
         <div className="flex items-center gap-4">
-          <button className="text-[#777] hover:text-white transition-colors">
-            <Image size={22} />
-          </button>
+          <ImagePicker
+            images={images}
+            onImagesChange={setImages}
+            disabled={isSubmitting}
+          />
           <button className="flex items-center gap-1 text-[#777] hover:text-white transition-colors">
             <Globe size={18} />
             <span className="text-[13px]">Anyone can reply</span>
           </button>
         </div>
-        <span className={`text-[13px] ${
-          content.length > MAX_LENGTH - 50 ? 'text-[#ff3040]' : 'text-[#777]'
-        }`}>
-          {content.length}/{MAX_LENGTH}
-        </span>
+        <div className="flex items-center gap-3">
+          {images.length > 0 && (
+            <span className="text-[12px] text-[#777]">
+              {images.length}/4 images
+            </span>
+          )}
+          <span className={`text-[13px] ${
+            content.length > MAX_LENGTH - 50 ? 'text-[#ff3040]' : 'text-[#777]'
+          }`}>
+            {content.length}/{MAX_LENGTH}
+          </span>
+        </div>
       </div>
     </div>
   )

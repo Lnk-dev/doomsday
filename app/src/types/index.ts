@@ -38,6 +38,29 @@ export interface Author {
 }
 
 /**
+ * Media attachment type for posts
+ */
+export interface MediaAttachment {
+  id: ID
+  /** Type of media */
+  type: 'image' | 'gif' | 'video'
+  /** URL or base64 data URI */
+  url: string
+  /** Thumbnail URL for videos */
+  thumbnailUrl?: string
+  /** Original filename */
+  filename?: string
+  /** File size in bytes */
+  size: number
+  /** Image width in pixels */
+  width?: number
+  /** Image height in pixels */
+  height?: number
+  /** Alt text for accessibility */
+  alt?: string
+}
+
+/**
  * Post entity - used for both doom-scroll and life posts
  */
 export interface Post {
@@ -67,6 +90,8 @@ export interface Post {
   repostedAt?: Timestamp
   /** IDs of users who reposted this post */
   repostedByUsers?: ID[]
+  /** Media attachments (max 4) */
+  media?: MediaAttachment[]
 }
 
 /**

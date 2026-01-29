@@ -130,6 +130,10 @@ export interface PredictionEvent {
   linkedPosts: ID[]
   createdAt: Timestamp
   createdBy: Author
+  /** On-chain event ID (if synced from blockchain) */
+  onChainEventId?: number
+  /** On-chain PDA address (if synced from blockchain) */
+  onChainPDA?: string
 }
 
 /**

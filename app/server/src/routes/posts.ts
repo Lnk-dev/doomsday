@@ -5,12 +5,21 @@ import { db } from '../db'
 import { posts, users, likes, comments } from '../db/schema'
 import { requireAuth, optionalAuth } from '../middleware/auth'
 import { createPostSchema, createCommentSchema, paginationSchema } from '../lib/validators'
+import { cache, CacheKeys, CacheTTL, CacheTags } from '../lib/cache'
 
 const postsRouter = new Hono()
 
 postsRouter.get('/', optionalAuth, zValidator('query', paginationSchema), async (c) => {
   const { limit } = c.req.valid('query')
   const variant = c.req.query('variant') as 'doom' | 'life' | undefined
+  const cacheKey = CacheKeys.posts.feed(variant || 'all', `limit:${limit}`)
+
+  // Try cache first
+  const cached = await cache.get<{ posts: unknown[] }>(cacheKey)
+  if (cached) {
+    return c.json(cached)
+  }
+
   const conditions = variant ? [eq(posts.variant, variant)] : []
 
   const result = await db.select({
@@ -21,7 +30,15 @@ postsRouter.get('/', optionalAuth, zValidator('query', paginationSchema), async 
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(posts.createdAt)).limit(limit)
 
-  return c.json({ posts: result })
+  const response = { posts: result }
+
+  // Cache for 1 minute (feeds change frequently)
+  await cache.set(cacheKey, response, {
+    ttl: CacheTTL.SHORT,
+    tags: [CacheTags.feed],
+  })
+
+  return c.json(response)
 })
 
 postsRouter.get('/:id', optionalAuth, async (c) => {
@@ -49,6 +66,10 @@ postsRouter.post('/', requireAuth, zValidator('json', createPostSchema), async (
   }
 
   const [post] = await db.insert(posts).values({ authorId: userId, content, variant }).returning()
+
+  // Invalidate feed caches
+  await cache.deleteByTag(CacheTags.feed)
+
   return c.json({ post }, 201)
 })
 

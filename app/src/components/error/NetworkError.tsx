@@ -90,12 +90,3 @@ export function NetworkError({ variant = 'generic', title, description, showRetr
   )
 }
 
-export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true)
-  useEffect(() => {
-    const on = () => setIsOnline(true), off = () => setIsOnline(false)
-    window.addEventListener('online', on); window.addEventListener('offline', off)
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
-  }, [])
-  return isOnline
-}

@@ -33,12 +33,17 @@ const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ 
 const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
 const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
 const BettingLimitsPage = lazy(() => import('@/pages/BettingLimitsPage').then(m => ({ default: m.BettingLimitsPage })))
+const MyBetsPage = lazy(() => import('@/pages/MyBetsPage').then(m => ({ default: m.MyBetsPage })))
 const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
 const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const EmbedPostPage = lazy(() => import('@/pages/EmbedPostPage').then(m => ({ default: m.EmbedPostPage })))
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
+const InboxPage = lazy(() => import('@/pages/InboxPage').then(m => ({ default: m.InboxPage })))
+const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
+const NewMessagePage = lazy(() => import('@/pages/NewMessagePage').then(m => ({ default: m.NewMessagePage })))
+const EmailVerificationPage = lazy(() => import('@/pages/EmailVerificationPage').then(m => ({ default: m.EmailVerificationPage })))
 
 // Admin routes (separate bundle)
 const AdminRoutes = lazy(() => import('@/admin/AdminRoutes'))
@@ -81,6 +86,12 @@ function App() {
           <Route path="/embed/post/:postId" element={
             <Suspense fallback={<PageLoader />}>
               <EmbedPostPage />
+            </Suspense>
+          } />
+          {/* Email verification (outside AppLayout) */}
+          <Route path="/verify-email" element={
+            <Suspense fallback={<PageLoader />}>
+              <EmailVerificationPage />
             </Suspense>
           } />
           {/* Admin dashboard (separate bundle, outside main AppLayout) */}
@@ -210,6 +221,11 @@ function App() {
               <BettingLimitsPage />
             </Suspense>
           } />
+          <Route path="/my-bets" element={
+            <Suspense fallback={<PageLoader />}>
+              <MyBetsPage />
+            </Suspense>
+          } />
           <Route path="/creator" element={
             <Suspense fallback={<PageLoader />}>
               <CreatorDashboardPage />
@@ -223,6 +239,21 @@ function App() {
           <Route path="/analytics" element={
             <Suspense fallback={<PageLoader />}>
               <AnalyticsPage />
+            </Suspense>
+          } />
+          <Route path="/messages" element={
+            <Suspense fallback={<PageLoader />}>
+              <InboxPage />
+            </Suspense>
+          } />
+          <Route path="/messages/new" element={
+            <Suspense fallback={<PageLoader />}>
+              <NewMessagePage />
+            </Suspense>
+          } />
+          <Route path="/messages/:conversationId" element={
+            <Suspense fallback={<PageLoader />}>
+              <ConversationPage />
             </Suspense>
           } />
           <Route path="*" element={

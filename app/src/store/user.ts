@@ -19,12 +19,16 @@ const generateAnonId = (): ID => `anon_${Math.random().toString(36).substring(2,
 interface UserState {
   /** Current user ID (local identifier) */
   userId: ID
+  /** JWT auth token for API requests */
+  token: string | null
   /** User's display author info */
   author: Author
   /** User's display name */
   displayName: string
   /** User's bio */
   bio: string
+  /** User's avatar URL */
+  avatarUrl: string | null
   /** $DOOM token balance */
   doomBalance: number
   /** $LIFE token balance */
@@ -83,18 +87,26 @@ interface UserState {
   muteUser: (username: string) => void
   /** Unmute a user */
   unmuteUser: (username: string) => void
+  /** Set auth token */
+  setToken: (token: string | null) => void
+  /** Set user from API response */
+  setUser: (user: { id: string; username: string; displayName?: string; avatarUrl?: string; doomBalance?: number }) => void
+  /** Get current user object for DMs */
+  getUser: () => { id: string; username: string; displayName: string | null; avatarUrl: string | null; verified: boolean } | null
 }
 
 export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
       userId: generateAnonId(),
+      token: null,
       author: {
         address: null,
         username: 'anonymous',
       },
       displayName: '',
       bio: '',
+      avatarUrl: null,
       doomBalance: 100, // Start with some tokens for testing
       lifeBalance: 0,
       daysLiving: 0,
@@ -229,6 +241,32 @@ export const useUserStore = create<UserState>()(
         set((state) => ({
           muted: state.muted.filter((u) => u !== username),
         }))
+      },
+
+      setToken: (token) => set({ token }),
+
+      setUser: (user) => {
+        set({
+          userId: user.id,
+          author: { address: null, username: user.username },
+          displayName: user.displayName || '',
+          avatarUrl: user.avatarUrl || null,
+          doomBalance: user.doomBalance ?? 100,
+        })
+      },
+
+      getUser: () => {
+        const state = get()
+        if (!state.isConnected && state.author.username === 'anonymous') {
+          return null
+        }
+        return {
+          id: state.userId,
+          username: state.author.username,
+          displayName: state.displayName || null,
+          avatarUrl: state.avatarUrl,
+          verified: state.author.verified ?? false,
+        }
       },
     }),
     {

@@ -496,6 +496,88 @@ export const verificationRequestsRelations = relations(verificationRequests, ({ 
   reviewer: one(adminUsers, { fields: [verificationRequests.reviewedBy], references: [adminUsers.id] }),
 }))
 
+// Message status enum
+export const messageStatusEnum = pgEnum('message_status', [
+  'sending',
+  'sent',
+  'delivered',
+  'read',
+  'failed',
+])
+
+// Conversations table
+export const conversations = pgTable('conversations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Participants (always 2 for DMs)
+  participant1Id: uuid('participant1_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  participant2Id: uuid('participant2_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Last message info (denormalized for efficient listing)
+  lastMessageId: uuid('last_message_id'),
+  lastMessageContent: text('last_message_content'),
+  lastMessageSenderId: uuid('last_message_sender_id'),
+  lastMessageAt: timestamp('last_message_at'),
+  // Per-user settings (stored as JSON)
+  participant1Muted: boolean('participant1_muted').default(false),
+  participant2Muted: boolean('participant2_muted').default(false),
+  participant1Archived: boolean('participant1_archived').default(false),
+  participant2Archived: boolean('participant2_archived').default(false),
+  // Unread counts
+  participant1Unread: integer('participant1_unread').default(0),
+  participant2Unread: integer('participant2_unread').default(0),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('conversations_participant1_idx').on(t.participant1Id),
+  index('conversations_participant2_idx').on(t.participant2Id),
+  index('conversations_updated_idx').on(t.updatedAt),
+])
+
+// Messages table
+export const messages = pgTable('messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  status: messageStatusEnum('status').default('sent'),
+  // Reply support - self-reference handled via SQL, not Drizzle reference to avoid circular type
+  replyToId: uuid('reply_to_id'),
+  // Soft delete
+  isDeleted: boolean('is_deleted').default(false),
+  deletedAt: timestamp('deleted_at'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('messages_conversation_idx').on(t.conversationId),
+  index('messages_sender_idx').on(t.senderId),
+  index('messages_created_idx').on(t.createdAt),
+])
+
+// Message read receipts (optional, for detailed tracking)
+export const messageReadReceipts = pgTable('message_read_receipts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  messageId: uuid('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  readAt: timestamp('read_at').defaultNow().notNull(),
+}, (t) => [
+  index('message_read_receipts_message_idx').on(t.messageId),
+  index('message_read_receipts_user_idx').on(t.userId),
+])
+
+// Conversation relations
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  participant1: one(users, { fields: [conversations.participant1Id], references: [users.id], relationName: 'participant1' }),
+  participant2: one(users, { fields: [conversations.participant2Id], references: [users.id], relationName: 'participant2' }),
+  messages: many(messages),
+}))
+
+// Message relations
+// Note: replyTo self-relation is handled manually in queries to avoid circular type inference
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, { fields: [messages.conversationId], references: [conversations.id] }),
+  sender: one(users, { fields: [messages.senderId], references: [users.id] }),
+}))
+
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
@@ -510,3 +592,5 @@ export type UserRestriction = typeof userRestrictions.$inferSelect
 export type Appeal = typeof appeals.$inferSelect
 export type ModerationLog = typeof moderationLogs.$inferSelect
 export type VerificationRequest = typeof verificationRequests.$inferSelect
+export type Conversation = typeof conversations.$inferSelect
+export type Message = typeof messages.$inferSelect

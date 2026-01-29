@@ -1,16 +1,34 @@
 /**
  * Events Store
+ * Issues #34, #35, #36, #54: On-chain prediction market integration
  *
  * Zustand store for managing prediction events (doom countdowns).
  * Handles:
  * - Event CRUD operations
  * - Betting on events (doom vs life)
  * - Event status updates
+ * - On-chain synchronization
  */
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { Connection, PublicKey, Transaction } from '@solana/web3.js'
+import { BN } from '@coral-xyz/anchor'
 import type { PredictionEvent, EventCategory, ID, Bet } from '@/types'
+import {
+  fetchAllEvents,
+  fetchEvent,
+  fetchUserBet,
+  buildPlaceBetTransaction,
+  buildCreateEventTransaction,
+  buildClaimWinningsTransaction,
+  findEventPDA,
+  Outcome,
+  EventStatus as OnChainEventStatus,
+  type PredictionEvent as OnChainEvent,
+  calculateEstimatedPayout,
+} from '@/lib/solana/programs/predictionMarket'
+import { getNetworkConfig } from '@/lib/solana/config'
 
 /** Generate unique ID */
 const generateId = (): ID => Math.random().toString(36).substring(2, 15)
@@ -21,32 +39,109 @@ const now = (): number => Date.now()
 /** Days to milliseconds */
 const daysToMs = (days: number): number => days * 24 * 60 * 60 * 1000
 
+/** Convert on-chain event to frontend format */
+function onChainEventToFrontend(event: OnChainEvent, onChainId: number): PredictionEvent {
+  const statusMap: Record<OnChainEventStatus, 'active' | 'occurred' | 'expired'> = {
+    [OnChainEventStatus.Active]: 'active',
+    [OnChainEventStatus.Resolved]: event.outcome === Outcome.Doom ? 'occurred' : 'expired',
+    [OnChainEventStatus.Cancelled]: 'expired',
+  }
+
+  return {
+    id: `onchain-${onChainId}`,
+    title: event.title,
+    description: event.description,
+    category: 'technology' as EventCategory, // Default, could be enhanced
+    countdownEnd: event.deadline.toNumber() * 1000, // Convert from Unix seconds to JS milliseconds
+    doomStake: event.doomPool.toNumber() / 1e9, // Convert from raw tokens to UI amount
+    lifeStake: event.lifePool.toNumber() / 1e9,
+    status: statusMap[event.status],
+    linkedPosts: [],
+    createdAt: event.createdAt.toNumber() * 1000,
+    createdBy: { address: event.creator.toBase58(), username: event.creator.toBase58().slice(0, 8) },
+    onChainEventId: onChainId,
+    onChainPDA: findEventPDA(onChainId)[0].toBase58(),
+  }
+}
+
+interface OnChainBetInfo {
+  eventId: string
+  eventPDA: string
+  outcome: 'doom' | 'life'
+  amount: number
+  placedAt: number
+  claimed: boolean
+  refunded: boolean
+  canClaim: boolean
+  estimatedPayout: number
+}
+
 interface EventsState {
   /** All events indexed by ID */
   events: Record<ID, PredictionEvent>
-  /** User's bets */
+  /** User's bets (local tracking) */
   bets: Bet[]
+  /** On-chain bet info keyed by event PDA */
+  onChainBets: Record<string, OnChainBetInfo>
+  /** Loading state for on-chain operations */
+  isLoading: boolean
+  /** Error state */
+  error: string | null
+  /** Last sync timestamp */
+  lastSyncAt: number | null
 
-  // Actions
-  /** Create a new prediction event */
+  // Local actions (mock for development)
   createEvent: (
     title: string,
     description: string,
     category: EventCategory,
     daysUntilEnd: number
   ) => PredictionEvent
-  /** Place a bet on an event */
   placeBet: (eventId: ID, side: 'doom' | 'life', amount: number, userId: ID) => Bet | null
-  /** Get all events sorted by countdown */
+
+  // Getters
   getEvents: () => PredictionEvent[]
-  /** Get event by ID */
   getEvent: (eventId: ID) => PredictionEvent | undefined
-  /** Get user's bets */
   getUserBets: (userId: ID) => Bet[]
+  getOnChainBet: (eventPDA: string) => OnChainBetInfo | undefined
+
+  // On-chain actions
+  syncEventsFromChain: (connection: Connection) => Promise<void>
+  syncEventFromChain: (connection: Connection, eventId: number) => Promise<PredictionEvent | null>
+  syncUserBetsFromChain: (connection: Connection, userPubkey: PublicKey) => Promise<void>
+
+  // Transaction builders (return transaction for wallet to sign)
+  createEventOnChain: (
+    connection: Connection,
+    creator: PublicKey,
+    eventId: number,
+    title: string,
+    description: string,
+    deadline: number,
+    resolutionDeadline: number
+  ) => Promise<{ transaction: Transaction; eventPDA: string }>
+
+  placeBetOnChain: (
+    connection: Connection,
+    user: PublicKey,
+    eventId: number,
+    outcome: 'doom' | 'life',
+    amount: number
+  ) => Promise<{ transaction: Transaction; estimatedPayout: number }>
+
+  claimWinningsOnChain: (
+    connection: Connection,
+    user: PublicKey,
+    eventId: number
+  ) => Promise<{ transaction: Transaction }>
+
+  // Helpers
+  setError: (error: string | null) => void
+  clearOnChainData: () => void
 }
 
 /**
- * Initial mock events
+ * Initial mock events for development
  */
 const initialEvents: Record<ID, PredictionEvent> = {
   'event-1': {
@@ -121,7 +216,12 @@ export const useEventsStore = create<EventsState>()(
     (set, get) => ({
       events: initialEvents,
       bets: [],
+      onChainBets: {},
+      isLoading: false,
+      error: null,
+      lastSyncAt: null,
 
+      // Local mock actions (for development without blockchain)
       createEvent: (title, description, category, daysUntilEnd) => {
         const event: PredictionEvent = {
           id: generateId(),
@@ -174,7 +274,6 @@ export const useEventsStore = create<EventsState>()(
 
       getEvents: () => {
         const events = Object.values(get().events)
-        // Sort by countdown (soonest first)
         return events.sort((a, b) => a.countdownEnd - b.countdownEnd)
       },
 
@@ -185,9 +284,220 @@ export const useEventsStore = create<EventsState>()(
       getUserBets: (userId) => {
         return get().bets.filter((bet) => bet.userId === userId)
       },
+
+      getOnChainBet: (eventPDA) => {
+        return get().onChainBets[eventPDA]
+      },
+
+      // On-chain sync actions
+      syncEventsFromChain: async (connection) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const onChainEvents = await fetchAllEvents(connection)
+
+          const eventsRecord: Record<ID, PredictionEvent> = { ...get().events }
+
+          for (const event of onChainEvents) {
+            const eventId = event.eventId.toNumber()
+            const frontendEvent = onChainEventToFrontend(event, eventId)
+            eventsRecord[frontendEvent.id] = frontendEvent
+          }
+
+          set({
+            events: eventsRecord,
+            lastSyncAt: Date.now(),
+            isLoading: false,
+          })
+        } catch (error) {
+          console.error('Failed to sync events from chain:', error)
+          set({
+            error: error instanceof Error ? error.message : 'Failed to sync events',
+            isLoading: false,
+          })
+        }
+      },
+
+      syncEventFromChain: async (connection, eventId) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const event = await fetchEvent(connection, eventId)
+          if (!event) {
+            set({ isLoading: false })
+            return null
+          }
+
+          const frontendEvent = onChainEventToFrontend(event, eventId)
+
+          set((state) => ({
+            events: { ...state.events, [frontendEvent.id]: frontendEvent },
+            isLoading: false,
+          }))
+
+          return frontendEvent
+        } catch (error) {
+          console.error('Failed to sync event from chain:', error)
+          set({
+            error: error instanceof Error ? error.message : 'Failed to sync event',
+            isLoading: false,
+          })
+          return null
+        }
+      },
+
+      syncUserBetsFromChain: async (connection, userPubkey) => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const events = Object.values(get().events).filter((e) => e.onChainEventId !== undefined)
+
+          const onChainBets: Record<string, OnChainBetInfo> = {}
+
+          for (const event of events) {
+            if (!event.onChainPDA) continue
+
+            try {
+              const eventPDA = new PublicKey(event.onChainPDA)
+              const userBet = await fetchUserBet(connection, eventPDA, userPubkey)
+
+              if (userBet) {
+                // Calculate estimated payout
+                const { payout } = calculateEstimatedPayout(
+                  userBet.amount.toNumber() / 1e9,
+                  userBet.outcome,
+                  event.doomStake,
+                  event.lifeStake,
+                  200 // Default 2% fee
+                )
+
+                const eventResolved = event.status !== 'active'
+                const isWinner =
+                  eventResolved &&
+                  ((event.status === 'occurred' && userBet.outcome === Outcome.Doom) ||
+                    (event.status === 'expired' && userBet.outcome === Outcome.Life))
+
+                onChainBets[event.onChainPDA] = {
+                  eventId: event.id,
+                  eventPDA: event.onChainPDA,
+                  outcome: userBet.outcome === Outcome.Doom ? 'doom' : 'life',
+                  amount: userBet.amount.toNumber() / 1e9,
+                  placedAt: userBet.placedAt.toNumber() * 1000,
+                  claimed: userBet.claimed,
+                  refunded: userBet.refunded,
+                  canClaim: isWinner && !userBet.claimed,
+                  estimatedPayout: payout,
+                }
+              }
+            } catch {
+              // No bet for this event, continue
+            }
+          }
+
+          set({ onChainBets, isLoading: false })
+        } catch (error) {
+          console.error('Failed to sync user bets from chain:', error)
+          set({
+            error: error instanceof Error ? error.message : 'Failed to sync bets',
+            isLoading: false,
+          })
+        }
+      },
+
+      // Transaction builders
+      createEventOnChain: async (
+        connection,
+        creator,
+        eventId,
+        title,
+        description,
+        deadline,
+        resolutionDeadline
+      ) => {
+        const transaction = await buildCreateEventTransaction(
+          connection,
+          creator,
+          eventId,
+          title,
+          description,
+          deadline,
+          resolutionDeadline
+        )
+
+        const [eventPDA] = findEventPDA(eventId)
+
+        return {
+          transaction,
+          eventPDA: eventPDA.toBase58(),
+        }
+      },
+
+      placeBetOnChain: async (connection, user, eventId, outcome, amount) => {
+        const bnAmount = new BN(amount * 1e9) // Convert to raw token amount
+
+        const transaction = await buildPlaceBetTransaction(
+          connection,
+          user,
+          eventId,
+          outcome === 'doom' ? Outcome.Doom : Outcome.Life,
+          bnAmount
+        )
+
+        // Get current event for payout calculation
+        const event = await fetchEvent(connection, eventId)
+        let estimatedPayout = amount
+
+        if (event) {
+          const { payout } = calculateEstimatedPayout(
+            amount,
+            outcome === 'doom' ? Outcome.Doom : Outcome.Life,
+            event.doomPool.toNumber() / 1e9,
+            event.lifePool.toNumber() / 1e9,
+            200 // Default 2% fee
+          )
+          estimatedPayout = payout
+        }
+
+        return {
+          transaction,
+          estimatedPayout,
+        }
+      },
+
+      claimWinningsOnChain: async (connection, user, eventId) => {
+        const config = getNetworkConfig()
+
+        // Fee accounts would typically be configured in the platform config
+        // For now, use placeholder addresses that would be set up during platform init
+        const doomFeeAccount = new PublicKey(config.tokens.doom.mint) // Placeholder
+        const lifeFeeAccount = new PublicKey(config.tokens.life.mint) // Placeholder
+
+        const transaction = await buildClaimWinningsTransaction(
+          connection,
+          user,
+          eventId,
+          doomFeeAccount,
+          lifeFeeAccount
+        )
+
+        return { transaction }
+      },
+
+      setError: (error) => set({ error }),
+
+      clearOnChainData: () =>
+        set({
+          onChainBets: {},
+          lastSyncAt: null,
+        }),
     }),
     {
       name: 'doomsday-events',
+      partialize: (state) => ({
+        events: state.events,
+        bets: state.bets,
+        // Don't persist on-chain data - it should be re-synced
+      }),
     }
   )
 )

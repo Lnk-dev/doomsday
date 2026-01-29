@@ -71,3 +71,17 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength - 3) + '...'
 }
+
+/**
+ * Format a timestamp as a readable date string
+ * @param timestamp - Unix timestamp in milliseconds
+ * @returns Formatted date string like "Jan 15, 2024"
+ */
+export function formatDate(timestamp: number): string {
+  const date = new Date(timestamp)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}

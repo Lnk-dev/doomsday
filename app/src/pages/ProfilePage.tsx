@@ -30,6 +30,7 @@ import {
   Award,
   Trophy,
   BarChart3,
+  MessageCircle,
 } from 'lucide-react'
 import {
   useUserStore,
@@ -37,6 +38,7 @@ import {
   useEventsStore,
   useBookmarksStore,
   useStreaksStore,
+  useMessagesStore,
 } from '@/store'
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
@@ -74,6 +76,9 @@ export function ProfilePage() {
   const isConnected = useUserStore((state) => state.isConnected)
   const userId = useUserStore((state) => state.userId)
   const addLife = useUserStore((state) => state.addLife)
+
+  // Messages store
+  const unreadMessageCount = useMessagesStore((state) => state.totalUnreadCount)
 
   const nextMilestone = getNextMilestone()
   const claimableMilestones = getUnclaimedMilestones()
@@ -155,6 +160,20 @@ export function ProfilePage() {
     <div className="flex flex-col min-h-full">
       <PageHeader
         title="Profile"
+        leftAction={
+          <button
+            className="p-1 relative"
+            onClick={() => navigate('/messages')}
+            aria-label={unreadMessageCount > 0 ? `Messages (${unreadMessageCount} unread)` : 'Messages'}
+          >
+            <MessageCircle size={24} className="text-white" />
+            {unreadMessageCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff3040] rounded-full flex items-center justify-center text-[10px] font-bold text-white">
+                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+              </span>
+            )}
+          </button>
+        }
         rightAction={
           <button className="p-1" onClick={() => navigate('/settings')}>
             <Settings size={24} className="text-white" />

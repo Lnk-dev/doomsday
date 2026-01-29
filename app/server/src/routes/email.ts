@@ -10,13 +10,15 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { users } from '../db/schema'
-import { verifyToken } from '../lib/jwt'
+import { verifyToken, generateEmailVerificationToken, verifyEmailVerificationToken } from '../lib/jwt'
 import {
   getEmailPreferences,
   updateEmailPreferences,
   handleUnsubscribe,
   type EmailPreferences,
 } from '../lib/email'
+import { addJob, QueueNames } from '../lib/jobs/queue'
+import { EmailJobs, type EmailJobData } from '../lib/jobs/handlers/email'
 
 const email = new Hono()
 
@@ -134,13 +136,100 @@ email.put('/address', zValidator('json', updateEmailSchema), async (c) => {
     .set({ email: newEmail, emailVerified: false })
     .where(eq(users.id, payload.userId))
 
-  // TODO: Send verification email via job queue
+  // Send verification email via job queue
+  const verificationToken = generateEmailVerificationToken(payload.userId, newEmail)
+  const appUrl = process.env.APP_URL || 'http://localhost:5173'
+  const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`
+
+  const emailJobData = EmailJobs.verification(newEmail, { verificationUrl })
+  await addJob<EmailJobData>(QueueNames.EMAIL, 'verification', emailJobData)
 
   return c.json({
     email: newEmail,
     verified: false,
     message: 'Email updated. Please check your inbox for verification.',
   })
+})
+
+/**
+ * Verify email address (public endpoint)
+ */
+email.get('/verify', async (c) => {
+  const token = c.req.query('token')
+
+  if (!token) {
+    return c.json({ error: 'Missing verification token' }, 400)
+  }
+
+  const payload = verifyEmailVerificationToken(token)
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired verification token' }, 400)
+  }
+
+  // Check if user exists and email matches
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, payload.userId),
+  })
+
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+
+  if (user.email !== payload.email) {
+    return c.json({ error: 'Email has been changed since verification was requested' }, 400)
+  }
+
+  if (user.emailVerified) {
+    return c.json({ success: true, message: 'Email already verified' })
+  }
+
+  // Mark email as verified
+  await db.update(users)
+    .set({ emailVerified: true })
+    .where(eq(users.id, payload.userId))
+
+  return c.json({ success: true, message: 'Email verified successfully' })
+})
+
+/**
+ * Resend verification email
+ */
+email.post('/resend-verification', async (c) => {
+  const auth = c.req.header('Authorization')
+  if (!auth?.startsWith('Bearer ')) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+
+  const payload = verifyToken(auth.slice(7))
+  if (!payload) {
+    return c.json({ error: 'Invalid token' }, 401)
+  }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, payload.userId),
+  })
+
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404)
+  }
+
+  if (!user.email) {
+    return c.json({ error: 'No email address set' }, 400)
+  }
+
+  if (user.emailVerified) {
+    return c.json({ error: 'Email already verified' }, 400)
+  }
+
+  // Send verification email via job queue
+  const verificationToken = generateEmailVerificationToken(payload.userId, user.email)
+  const appUrl = process.env.APP_URL || 'http://localhost:5173'
+  const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`
+
+  const emailJobData = EmailJobs.verification(user.email, { verificationUrl })
+  await addJob<EmailJobData>(QueueNames.EMAIL, 'verification', emailJobData)
+
+  return c.json({ success: true, message: 'Verification email sent' })
 })
 
 /**

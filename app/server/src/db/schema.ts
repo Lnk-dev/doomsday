@@ -213,6 +213,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts), comments: many(comments), likes: many(likes),
   followers: many(follows, { relationName: 'following' }),
   following: many(follows, { relationName: 'follower' }),
+  verificationRequests: many(verificationRequests),
 }))
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -445,6 +446,56 @@ export const hiddenPosts = pgTable('hidden_posts', {
   index('hidden_posts_post_idx').on(t.postId),
 ])
 
+// Verification request status enum
+export const verificationStatusEnum = pgEnum('verification_status', [
+  'pending',      // Awaiting review
+  'approved',     // Verified
+  'rejected',     // Rejected
+  'revoked',      // Previously approved, now revoked
+])
+
+// Verification type enum
+export const verificationTypeEnum = pgEnum('verification_type', [
+  'notable',      // Notable person/organization
+  'creator',      // Content creator
+  'business',     // Business account
+  'official',     // Official account
+])
+
+// Verification requests
+export const verificationRequests = pgTable('verification_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Request details
+  type: verificationTypeEnum('type').notNull(),
+  status: verificationStatusEnum('status').notNull().default('pending'),
+  // Supporting information
+  realName: text('real_name').notNull(),
+  category: text('category').notNull(), // e.g., "journalist", "athlete", "brand"
+  description: text('description').notNull(), // Why they should be verified
+  evidenceUrls: text('evidence_urls'), // JSON array of URLs (social links, articles, etc.)
+  // Contact info for verification
+  publicEmail: text('public_email'),
+  websiteUrl: text('website_url'),
+  // Review
+  reviewedBy: uuid('reviewed_by').references(() => adminUsers.id),
+  reviewNotes: text('review_notes'),
+  rejectionReason: text('rejection_reason'),
+  reviewedAt: timestamp('reviewed_at'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('verification_requests_user_idx').on(t.userId),
+  index('verification_requests_status_idx').on(t.status),
+  index('verification_requests_created_idx').on(t.createdAt),
+])
+
+export const verificationRequestsRelations = relations(verificationRequests, ({ one }) => ({
+  user: one(users, { fields: [verificationRequests.userId], references: [users.id] }),
+  reviewer: one(adminUsers, { fields: [verificationRequests.reviewedBy], references: [adminUsers.id] }),
+}))
+
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
@@ -458,3 +509,4 @@ export type UserWarning = typeof userWarnings.$inferSelect
 export type UserRestriction = typeof userRestrictions.$inferSelect
 export type Appeal = typeof appeals.$inferSelect
 export type ModerationLog = typeof moderationLogs.$inferSelect
+export type VerificationRequest = typeof verificationRequests.$inferSelect

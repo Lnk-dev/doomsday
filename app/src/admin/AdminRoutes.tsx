@@ -7,7 +7,14 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AdminLayout } from './components/layout'
-import { AdminLoginPage, AdminDashboardPage } from './pages'
+import {
+  AdminLoginPage,
+  AdminDashboardPage,
+  AdminUsersPage,
+  AdminModerationPage,
+  AdminAnalyticsPage,
+  AdminEventsPage,
+} from './pages'
 
 export default function AdminRoutes() {
   return (
@@ -18,11 +25,10 @@ export default function AdminRoutes() {
       {/* Protected routes (inside AdminLayout with auth check) */}
       <Route element={<AdminLayout />}>
         <Route index element={<AdminDashboardPage />} />
-        {/* Future routes - to be implemented in Phase 2-5 */}
-        {/* <Route path="users" element={<AdminUsersPage />} /> */}
-        {/* <Route path="moderation" element={<AdminModerationPage />} /> */}
-        {/* <Route path="analytics" element={<AdminAnalyticsPage />} /> */}
-        {/* <Route path="events" element={<AdminEventsPage />} /> */}
+        <Route path="users" element={<AdminUsersPage />} />
+        <Route path="moderation" element={<AdminModerationPage />} />
+        <Route path="analytics" element={<AdminAnalyticsPage />} />
+        <Route path="events" element={<AdminEventsPage />} />
       </Route>
 
       {/* Catch all - redirect to admin dashboard */}

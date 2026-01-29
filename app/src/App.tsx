@@ -33,6 +33,7 @@ const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ 
 const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
 const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
 const BettingLimitsPage = lazy(() => import('@/pages/BettingLimitsPage').then(m => ({ default: m.BettingLimitsPage })))
+const MyBetsPage = lazy(() => import('@/pages/MyBetsPage').then(m => ({ default: m.MyBetsPage })))
 const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
 const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
@@ -218,6 +219,11 @@ function App() {
           <Route path="/settings/betting-limits" element={
             <Suspense fallback={<PageLoader />}>
               <BettingLimitsPage />
+            </Suspense>
+          } />
+          <Route path="/my-bets" element={
+            <Suspense fallback={<PageLoader />}>
+              <MyBetsPage />
             </Suspense>
           } />
           <Route path="/creator" element={

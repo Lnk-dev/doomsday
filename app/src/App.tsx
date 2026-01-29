@@ -39,6 +39,9 @@ const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ defa
 const EmbedPostPage = lazy(() => import('@/pages/EmbedPostPage').then(m => ({ default: m.EmbedPostPage })))
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 
+// Admin routes (separate bundle)
+const AdminRoutes = lazy(() => import('@/admin/AdminRoutes'))
+
 /** Loading spinner shown during lazy load */
 function PageLoader() {
   return (
@@ -77,6 +80,12 @@ function App() {
           <Route path="/embed/post/:postId" element={
             <Suspense fallback={<PageLoader />}>
               <EmbedPostPage />
+            </Suspense>
+          } />
+          {/* Admin dashboard (separate bundle, outside main AppLayout) */}
+          <Route path="/admin/*" element={
+            <Suspense fallback={<PageLoader />}>
+              <AdminRoutes />
             </Suspense>
           } />
         <Route element={<AppLayout />}>

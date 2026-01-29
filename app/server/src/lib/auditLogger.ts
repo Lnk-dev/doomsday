@@ -605,6 +605,137 @@ export const audit = {
       }),
   },
 
+  // Content moderation events
+  moderation: {
+    contentReported: (
+      reporterId: string,
+      details: { reportId: string; contentType: string; contentId: string; reason: string }
+    ) =>
+      logAudit({
+        actorId: reporterId,
+        actorType: 'user',
+        action: 'moderation.content_reported',
+        category: 'moderation',
+        resourceType: details.contentType,
+        resourceId: details.contentId,
+        details: {
+          reportId: details.reportId,
+          reason: details.reason,
+        },
+      }),
+
+    reportActioned: (
+      adminId: string,
+      adminUsername: string,
+      details: { reportId: string; action: string; targetUserId: string; targetUsername: string },
+      notes?: string
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        actorUsername: adminUsername,
+        action: 'moderation.report_actioned',
+        category: 'moderation',
+        severity: 'warning',
+        resourceType: 'report',
+        resourceId: details.reportId,
+        details: {
+          action: details.action,
+          targetUserId: details.targetUserId,
+          targetUsername: details.targetUsername,
+        },
+        reason: notes,
+      }),
+
+    userWarned: (
+      adminId: string,
+      adminUsername: string,
+      user: { userId: string; username: string },
+      reason: string
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        actorUsername: adminUsername,
+        action: 'moderation.user_warned',
+        category: 'moderation',
+        severity: 'warning',
+        resourceType: 'user',
+        resourceId: user.userId,
+        details: { targetUsername: user.username },
+        reason,
+      }),
+
+    postHidden: (
+      adminId: string,
+      adminUsername: string,
+      postId: string,
+      reason?: string
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        actorUsername: adminUsername,
+        action: 'moderation.post_hidden',
+        category: 'moderation',
+        resourceType: 'post',
+        resourceId: postId,
+        reason,
+      }),
+
+    postDeleted: (
+      adminId: string,
+      adminUsername: string,
+      postId: string,
+      reason?: string
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        actorUsername: adminUsername,
+        action: 'moderation.post_deleted',
+        category: 'moderation',
+        severity: 'warning',
+        resourceType: 'post',
+        resourceId: postId,
+        reason,
+      }),
+
+    appealSubmitted: (
+      userId: string,
+      appealId: string,
+      restrictionId?: string
+    ) =>
+      logAudit({
+        actorId: userId,
+        actorType: 'user',
+        action: 'moderation.appeal_submitted',
+        category: 'moderation',
+        resourceType: 'appeal',
+        resourceId: appealId,
+        details: { restrictionId },
+      }),
+
+    appealReviewed: (
+      adminId: string,
+      adminUsername: string,
+      appeal: { appealId: string; userId: string; approved: boolean },
+      notes?: string
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        actorUsername: adminUsername,
+        action: appeal.approved ? 'moderation.appeal_approved' : 'moderation.appeal_denied',
+        category: 'moderation',
+        severity: 'warning',
+        resourceType: 'appeal',
+        resourceId: appeal.appealId,
+        details: { userId: appeal.userId, approved: appeal.approved },
+        reason: notes,
+      }),
+  },
+
   // Admin events
   admin: {
     login: (adminId: string, username: string, context: { ip?: string; userAgent?: string }) =>

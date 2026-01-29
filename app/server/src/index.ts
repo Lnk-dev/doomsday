@@ -18,6 +18,8 @@ import healthRouter from './routes/health'
 import adminAuthRouter from './routes/admin/auth'
 import adminAuditRouter from './routes/admin/audit'
 import adminFraudRouter from './routes/admin/fraud'
+import adminModerationRouter from './routes/admin/moderation'
+import reportsRouter from './routes/reports'
 
 initSentry()
 
@@ -36,6 +38,8 @@ app.route('/health', healthRouter)
 app.route('/admin/auth', adminAuthRouter)
 app.route('/admin/audit', adminAuditRouter)
 app.route('/admin/fraud', adminFraudRouter)
+app.route('/admin/moderation', adminModerationRouter)
+app.route('/reports', reportsRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

@@ -26,6 +26,8 @@ import reportsRouter from './routes/reports'
 import emailRouter from './routes/email'
 import gdprRouter from './routes/gdpr'
 import pushRouter from './routes/push'
+import geoRouter from './routes/geo'
+import { geoDetection } from './middleware/geoBlock'
 import { initializeWorkers, scheduleRecurringJobs, closeAllQueues } from './lib/jobs'
 
 initSentry()
@@ -38,6 +40,7 @@ app.use('*', requestId)
 app.use('*', apiSecurityHeaders)
 app.use('*', cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))
 app.use('*', requestLogger)
+app.use('*', geoDetection)
 
 app.route('/auth', authRouter)
 app.route('/posts', postsRouter)
@@ -53,6 +56,7 @@ app.route('/reports', reportsRouter)
 app.route('/email', emailRouter)
 app.route('/gdpr', gdprRouter)
 app.route('/push', pushRouter)
+app.route('/geo', geoRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

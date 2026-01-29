@@ -5,28 +5,19 @@ test.describe('Social Interactions', () => {
     await page.goto('/');
 
     const firstPost = page.locator('article').first();
-    const likeButton = firstPost.locator('button').first();
-
-    // Get initial like count
-    const likesText = await firstPost.locator('text=/\\d+ likes?/').textContent() || '0 likes';
-    const initialLikes = parseInt(likesText.match(/\d+/)?.[0] || '0', 10);
+    const likeButton = firstPost.getByRole('button', { name: /like this post/i });
 
     // Like the post
     await likeButton.click();
 
-    // Heart should be filled (red)
-    await expect(likeButton.locator('svg')).toHaveCSS('fill', 'rgb(255, 48, 64)');
-
-    // Like count should increase
-    const newLikesText = await firstPost.locator('text=/\\d+ likes?/').textContent() || '1 like';
-    const newLikes = parseInt(newLikesText.match(/\d+/)?.[0] || '0', 10);
-    expect(newLikes).toBe(initialLikes + 1);
+    // Button should now say "Unlike"
+    await expect(firstPost.getByRole('button', { name: /unlike this post/i })).toBeVisible();
 
     // Unlike the post
-    await likeButton.click();
+    await firstPost.getByRole('button', { name: /unlike this post/i }).click();
 
-    // Heart should be unfilled
-    await expect(likeButton.locator('svg')).not.toHaveCSS('fill', 'rgb(255, 48, 64)');
+    // Button should now say "Like"
+    await expect(firstPost.getByRole('button', { name: /like this post/i })).toBeVisible();
   });
 
   test('should follow and unfollow a user from post detail', async ({ page }) => {

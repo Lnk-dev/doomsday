@@ -12,8 +12,8 @@ test.describe('Event Betting', () => {
     // Navigate to events
     await page.goto('/events');
 
-    // Click on first event
-    await page.locator('button').filter({ hasText: /technology|economic|climate|war|natural|social/i }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
     await page.waitForURL(/\/events\/.+/);
 
     const eventPage = new EventDetailPage(page);
@@ -36,8 +36,8 @@ test.describe('Event Betting', () => {
   test('should place a life bet on an event', async ({ page }) => {
     await page.goto('/events');
 
-    // Click on first event
-    await page.locator('button').filter({ hasText: /technology|economic|climate|war|natural|social/i }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
     await page.waitForURL(/\/events\/.+/);
 
     const eventPage = new EventDetailPage(page);
@@ -54,7 +54,8 @@ test.describe('Event Betting', () => {
   test('should show potential payout calculation', async ({ page }) => {
     await page.goto('/events');
 
-    await page.locator('button').filter({ hasText: /technology|economic|climate|war|natural|social/i }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
     await page.waitForURL(/\/events\/.+/);
 
     const eventPage = new EventDetailPage(page);
@@ -70,7 +71,8 @@ test.describe('Event Betting', () => {
   test('should disable bet when balance is insufficient', async ({ page }) => {
     await page.goto('/events');
 
-    await page.locator('button').filter({ hasText: /technology|economic|climate|war|natural|social/i }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
     await page.waitForURL(/\/events\/.+/);
 
     // Enter amount larger than balance
@@ -86,9 +88,10 @@ test.describe('Event Betting', () => {
   test('should show bet in profile bets tab', async ({ page }) => {
     // Place a bet first
     await page.goto('/events');
-    const eventTitle = await page.locator('h3').first().textContent();
+    const eventTitle = await page.locator('button h3').first().textContent();
 
-    await page.locator('button').filter({ hasText: /technology|economic|climate|war|natural|social/i }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
     await page.waitForURL(/\/events\/.+/);
 
     await page.getByRole('spinbutton').fill('50');
@@ -97,9 +100,9 @@ test.describe('Event Betting', () => {
     // Wait for success
     await expect(page.locator('text=/bet placed/i')).toBeVisible({ timeout: 5000 });
 
-    // Check profile bets tab
+    // Check profile bets tab (label includes count, e.g., "Bets (1)")
     await page.goto('/profile');
-    await page.getByRole('button', { name: /bets/i }).click();
+    await page.getByRole('button', { name: /^bets/i }).click();
 
     // Should see the bet
     if (eventTitle) {

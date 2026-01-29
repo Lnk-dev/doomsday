@@ -85,16 +85,17 @@ export function InboxPage() {
               className={`p-2 rounded-full transition-colors ${
                 showArchived ? 'bg-[#333] text-white' : 'text-[#777] hover:text-white'
               }`}
-              title={showArchived ? 'Show active' : 'Show archived'}
+              aria-label={showArchived ? 'Show active messages' : 'Show archived messages'}
+              aria-pressed={showArchived}
             >
-              <Archive className="w-5 h-5" />
+              <Archive className="w-5 h-5" aria-hidden="true" />
             </button>
             <Link
               to="/messages/new"
               className="p-2 text-[#ff3040] hover:bg-[#ff3040]/10 rounded-full transition-colors"
-              title="New message"
+              aria-label="New message"
             >
-              <Edit className="w-5 h-5" />
+              <Edit className="w-5 h-5" aria-hidden="true" />
             </Link>
           </div>
         </div>
@@ -201,26 +202,38 @@ export function InboxPage() {
                   e.preventDefault()
                   setMenuOpenId(menuOpenId === conversation.id ? null : conversation.id)
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setMenuOpenId(null)
+                }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-[#555] hover:text-white rounded-full hover:bg-[#222]"
+                aria-label={`Options for conversation with ${conversation.otherUser.displayName || conversation.otherUser.username}`}
+                aria-expanded={menuOpenId === conversation.id}
+                aria-haspopup="menu"
               >
-                <MoreHorizontal className="w-5 h-5" />
+                <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
               </button>
 
               {/* Dropdown Menu */}
               {menuOpenId === conversation.id && (
-                <div className="absolute right-4 top-14 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-20 py-1 min-w-[150px]">
+                <div
+                  className="absolute right-4 top-14 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-20 py-1 min-w-[150px]"
+                  role="menu"
+                  aria-label="Conversation options"
+                >
                   <button
                     onClick={() => handleMute(conversation.id)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-[#222] text-left"
+                    role="menuitem"
                   >
-                    <VolumeX className="w-4 h-4" />
+                    <VolumeX className="w-4 h-4" aria-hidden="true" />
                     {conversation.isMuted ? 'Unmute' : 'Mute'}
                   </button>
                   <button
                     onClick={() => handleArchive(conversation.id)}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-[#222] text-left"
+                    role="menuitem"
                   >
-                    <Archive className="w-4 h-4" />
+                    <Archive className="w-4 h-4" aria-hidden="true" />
                     {conversation.isArchived ? 'Unarchive' : 'Archive'}
                   </button>
                 </div>

@@ -118,8 +118,9 @@ export function ConversationPage() {
         <button
           onClick={() => navigate('/messages')}
           className="p-2 -ml-2 text-[#777] hover:text-white rounded-full hover:bg-[#222]"
+          aria-label="Back to messages"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </button>
 
         <Link to={`/profile?user=${otherUser?.username}`} className="flex items-center gap-3 flex-1 min-w-0">
@@ -152,25 +153,35 @@ export function ConversationPage() {
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
+            onKeyDown={(e) => e.key === 'Escape' && setShowMenu(false)}
             className="p-2 text-[#777] hover:text-white rounded-full hover:bg-[#222]"
+            aria-label="Conversation options"
+            aria-expanded={showMenu}
+            aria-haspopup="menu"
           >
-            <MoreVertical className="w-5 h-5" />
+            <MoreVertical className="w-5 h-5" aria-hidden="true" />
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-20 py-1 min-w-[150px]">
+            <div
+              className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-20 py-1 min-w-[150px]"
+              role="menu"
+              aria-label="Conversation options"
+            >
               <button
                 onClick={handleMute}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-[#222] text-left"
+                role="menuitem"
               >
-                <VolumeX className="w-4 h-4" />
+                <VolumeX className="w-4 h-4" aria-hidden="true" />
                 {conversation?.isMuted ? 'Unmute' : 'Mute'}
               </button>
               <button
                 onClick={handleArchive}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-[#222] text-left"
+                role="menuitem"
               >
-                <Archive className="w-4 h-4" />
+                <Archive className="w-4 h-4" aria-hidden="true" />
                 Archive
               </button>
             </div>
@@ -239,24 +250,24 @@ export function ConversationPage() {
 
                   {/* Message Actions */}
                   {!message.isDeleted && (
-                    <div className={`flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity ${isOwn ? 'justify-end' : ''}`}>
+                    <div className={`flex gap-1 mt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity ${isOwn ? 'justify-end' : ''}`}>
                       <button
                         onClick={() => {
                           setReplyTo(message)
                           inputRef.current?.focus()
                         }}
                         className="p-1 text-[#555] hover:text-white rounded"
-                        title="Reply"
+                        aria-label="Reply to message"
                       >
-                        <Reply className="w-4 h-4" />
+                        <Reply className="w-4 h-4" aria-hidden="true" />
                       </button>
                       {isOwn && (
                         <button
                           onClick={() => handleDelete(message.id)}
                           className="p-1 text-[#555] hover:text-[#ff3040] rounded"
-                          title="Delete"
+                          aria-label="Delete message"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -271,16 +282,17 @@ export function ConversationPage() {
 
       {/* Reply Preview */}
       {replyTo && (
-        <div className="px-4 py-2 border-t border-[#222] bg-[#111] flex items-center gap-2">
-          <Reply className="w-4 h-4 text-[#555]" />
+        <div className="px-4 py-2 border-t border-[#222] bg-[#111] flex items-center gap-2" role="status" aria-live="polite">
+          <Reply className="w-4 h-4 text-[#555]" aria-hidden="true" />
           <span className="text-sm text-[#777] flex-1 truncate">
             Replying to: {replyTo.content.slice(0, 50)}
           </span>
           <button
             onClick={() => setReplyTo(null)}
             className="p-1 text-[#555] hover:text-white"
+            aria-label="Cancel reply"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
       )}
@@ -297,13 +309,15 @@ export function ConversationPage() {
             rows={1}
             className="flex-1 bg-[#1a1a1a] border border-[#333] rounded-2xl px-4 py-3 text-[15px] resize-none focus:outline-none focus:border-[#555] max-h-32"
             style={{ minHeight: '48px' }}
+            aria-label="Message input"
           />
           <button
             onClick={handleSend}
             disabled={!messageText.trim() || isSendingMessage}
             className="p-3 bg-[#ff3040] text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#e02838] transition-colors"
+            aria-label={isSendingMessage ? 'Sending message...' : 'Send message'}
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       </div>

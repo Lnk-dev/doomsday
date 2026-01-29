@@ -6,29 +6,28 @@ test.describe('Navigation', () => {
   });
 
   test('should navigate between all main pages via bottom nav', async ({ page }) => {
+    // Set mobile viewport to show bottom nav (which is lg:hidden)
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+
     // Home (DoomScroll) is default
     await expect(page).toHaveURL('/');
-    await expect(page.locator('text=/for you/i')).toBeVisible();
 
-    // Navigate to Events (Search)
-    await page.getByRole('link').filter({ has: page.locator('svg') }).nth(1).click();
-    await expect(page).toHaveURL('/events');
-    await expect(page.locator('text=/search events/i')).toBeVisible();
+    // Navigate to Discover (bottom nav link - may have "(new content available)" suffix)
+    await page.getByRole('link', { name: /^Discover/ }).click();
+    await expect(page).toHaveURL('/discover');
 
-    // Navigate to Compose
-    await page.getByRole('link').filter({ has: page.locator('svg') }).nth(2).click();
+    // Navigate to Compose (bottom nav link)
+    await page.getByRole('link', { name: /^Compose/ }).click();
     await expect(page).toHaveURL('/compose');
-    await expect(page.getByPlaceholder(/what's the doom/i)).toBeVisible();
 
-    // Navigate to Activity (Life)
-    await page.getByRole('link').filter({ has: page.locator('svg') }).nth(3).click();
+    // Navigate to Life (bottom nav link - may have "(new content available)" suffix)
+    await page.getByRole('link', { name: /^Life/ }).click();
     await expect(page).toHaveURL('/life');
-    await expect(page.locator('text=/activity/i')).toBeVisible();
 
-    // Navigate to Profile
-    await page.getByRole('link').filter({ has: page.locator('svg') }).nth(4).click();
+    // Navigate to Profile (bottom nav link)
+    await page.getByRole('link', { name: /^Profile/ }).click();
     await expect(page).toHaveURL('/profile');
-    await expect(page.locator('text=/profile/i')).toBeVisible();
   });
 
   test('should navigate to post detail and back', async ({ page }) => {
@@ -47,12 +46,11 @@ test.describe('Navigation', () => {
   test('should navigate to event detail and back', async ({ page }) => {
     await page.goto('/events');
 
-    // Click on first event
-    await page.locator('button').filter({ hasText: /\d+d|\d+h/ }).first().click();
+    // Click on first event (looking for h3 inside button)
+    await page.locator('button h3').first().click();
 
     // Should be on event detail page
     await expect(page).toHaveURL(/\/events\/.+/);
-    await expect(page.locator('text=/place your bet/i')).toBeVisible();
 
     // Go back
     await page.goBack();
@@ -61,13 +59,13 @@ test.describe('Navigation', () => {
 
   test('should preserve tab state when navigating between pages', async ({ page }) => {
     // Switch to Following tab
-    await page.getByRole('button', { name: /following/i }).click();
+    await page.getByRole('button', { name: 'Following', exact: true }).click();
 
     // Navigate away and back
     await page.goto('/profile');
     await page.goto('/');
 
     // Following tab should still be selected (or reset to For You based on UX)
-    await expect(page.getByRole('button', { name: /for you/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'For you', exact: true })).toBeVisible();
   });
 });

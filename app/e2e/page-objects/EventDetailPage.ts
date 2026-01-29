@@ -31,7 +31,7 @@ export class EventDetailPage extends BasePage {
   }
 
   getQuickAmountButton(amount: number): Locator {
-    return this.page.getByRole('button', { name: String(amount) });
+    return this.page.getByRole('button', { name: String(amount), exact: true });
   }
 
   get maxButton(): Locator {

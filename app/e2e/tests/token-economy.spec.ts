@@ -58,10 +58,10 @@ test.describe('Token Economy', () => {
   test('should show stats grid on profile', async ({ page }) => {
     await page.goto('/profile');
 
-    // Verify all stat boxes are visible
-    await expect(page.locator('text=/\\$DOOM/')).toBeVisible();
-    await expect(page.locator('text=/\\$LIFE/')).toBeVisible();
-    await expect(page.locator('text=/Days/')).toBeVisible();
-    await expect(page.locator('text=/Life Posts/')).toBeVisible();
+    // Verify all stat labels are visible using exact matching
+    await expect(page.getByText('$DOOM', { exact: true })).toBeVisible();
+    await expect(page.getByText('$LIFE', { exact: true })).toBeVisible();
+    await expect(page.getByText('Days', { exact: true })).toBeVisible();
+    await expect(page.getByText('Life Posts', { exact: true })).toBeVisible();
   });
 });

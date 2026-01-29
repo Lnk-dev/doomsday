@@ -49,10 +49,10 @@ export function EmailVerificationPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-[#1a1a1a] rounded-xl p-8 text-center">
+      <main className="max-w-md w-full bg-[#1a1a1a] rounded-xl p-8 text-center" role="main" aria-live="polite">
         {status === 'loading' && (
           <>
-            <Loader2 className="w-16 h-16 text-[#ff3040] animate-spin mx-auto mb-4" />
+            <Loader2 className="w-16 h-16 text-[#ff3040] animate-spin mx-auto mb-4" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-white mb-2">Verifying your email...</h1>
             <p className="text-[#777]">Please wait while we verify your email address.</p>
           </>
@@ -60,7 +60,7 @@ export function EmailVerificationPage() {
 
         {status === 'success' && (
           <>
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-white mb-2">Email Verified!</h1>
             <p className="text-[#777] mb-6">{message}</p>
             <button
@@ -74,9 +74,9 @@ export function EmailVerificationPage() {
 
         {status === 'error' && (
           <>
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-white mb-2">Verification Failed</h1>
-            <p className="text-[#777] mb-6">{message}</p>
+            <p className="text-[#777] mb-6" role="alert">{message}</p>
             <div className="space-y-3">
               <button
                 onClick={() => navigate('/settings')}
@@ -96,7 +96,7 @@ export function EmailVerificationPage() {
 
         {status === 'no-token' && (
           <>
-            <Mail className="w-16 h-16 text-[#777] mx-auto mb-4" />
+            <Mail className="w-16 h-16 text-[#777] mx-auto mb-4" aria-hidden="true" />
             <h1 className="text-xl font-semibold text-white mb-2">No Token Provided</h1>
             <p className="text-[#777] mb-6">
               This page is used to verify your email address. Please use the link sent to your email.
@@ -109,7 +109,7 @@ export function EmailVerificationPage() {
             </button>
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

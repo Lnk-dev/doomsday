@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: doomsday-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-doomsday}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-doomsday}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-doomsday}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - doomsday-network
+
+  # Backend API Server
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    container_name: doomsday-api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-doomsday}:${DB_PASSWORD}@db:5432/${DB_NAME:-doomsday}
+      PORT: 3001
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL:-https://api.devnet.solana.com}
+      SOLANA_NETWORK: ${SOLANA_NETWORK:-devnet}
+    ports:
+      - "3001:3001"
+    networks:
+      - doomsday-network
+
+  # Database Migration Runner
+  migrate:
+    build:
+      context: ../server
+      dockerfile: Dockerfile.migrate
+    container_name: doomsday-migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-doomsday}:${DB_PASSWORD}@db:5432/${DB_NAME:-doomsday}
+    networks:
+      - doomsday-network
+    profiles:
+      - migrate
+
+  # Frontend + Nginx
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
+        VITE_SOLANA_NETWORK: ${VITE_SOLANA_NETWORK:-devnet}
+        VITE_SOLANA_RPC_URL: ${VITE_SOLANA_RPC_URL:-https://api.devnet.solana.com}
+    container_name: doomsday-web
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - doomsday-network
+
+volumes:
+  postgres_data:
+
+networks:
+  doomsday-network:
+    driver: bridge

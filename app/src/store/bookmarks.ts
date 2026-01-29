@@ -117,6 +117,8 @@ export const useBookmarksStore = create<BookmarksState>()(
         set((state) => {
           const { [bookmarkId]: _removed, ...remainingBookmarks } = state.bookmarks
           const { [postId]: _removedPost, ...remainingByPost } = state.bookmarksByPost
+          void _removed
+          void _removedPost
           return {
             bookmarks: remainingBookmarks,
             bookmarksByPost: remainingByPost,
@@ -188,6 +190,7 @@ export const useBookmarksStore = create<BookmarksState>()(
       deleteCollection: (collectionId) => {
         set((state) => {
           const { [collectionId]: _removed, ...remainingCollections } = state.collections
+          void _removed
           // Move bookmarks in this collection to uncategorized
           const updatedBookmarks = { ...state.bookmarks }
           Object.values(updatedBookmarks).forEach((bookmark) => {

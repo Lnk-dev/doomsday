@@ -74,7 +74,7 @@ export function extractTopics(content: string): string[] {
   const contentLower = content.toLowerCase()
 
   return Object.entries(TOPIC_KEYWORDS)
-    .filter(([_, keywords]) => keywords.some((kw) => contentLower.includes(kw)))
+    .filter(([, keywords]) => keywords.some((kw) => contentLower.includes(kw)))
     .map(([topic]) => topic)
 }
 

@@ -18,7 +18,7 @@ export function TransactionDetails({ transaction, onClose, onViewReceipt, onRetr
   const metadata = 'metadata' in transaction ? transaction.metadata : undefined
   const networkName = getNetworkDisplayName()
 
-  const handleCopy = async (text: string, field: string) => { try { await navigator.clipboard.writeText(text); setCopied(field); setTimeout(() => setCopied(null), 2000) } catch {} }
+  const handleCopy = async (text: string, field: string) => { try { await navigator.clipboard.writeText(text); setCopied(field); setTimeout(() => setCopied(null), 2000) } catch { /* clipboard not available */ } }
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">

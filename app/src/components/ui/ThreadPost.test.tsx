@@ -193,7 +193,8 @@ describe('ThreadPost', () => {
       const onClick = vi.fn()
       render(<ThreadPost {...defaultProps} onClick={onClick} />)
 
-      const content = screen.getByText('This is a test post content')
+      // The cursor-pointer class is on the parent <p> element
+      const content = screen.getByText('This is a test post content').closest('p')
       expect(content).toHaveClass('cursor-pointer')
     })
 
@@ -226,7 +227,8 @@ describe('ThreadPost', () => {
       const content = 'Line 1\nLine 2\nLine 3'
       render(<ThreadPost {...defaultProps} content={content} />)
 
-      const contentEl = screen.getByText(/Line 1/i)
+      // The whitespace-pre-wrap class is on the parent <p> element
+      const contentEl = screen.getByText(/Line 1/i).closest('p')
       expect(contentEl).toHaveClass('whitespace-pre-wrap')
     })
 
@@ -234,7 +236,8 @@ describe('ThreadPost', () => {
       const longContent = 'This is a very long content that should break properly when rendered in the component'
       render(<ThreadPost {...defaultProps} content={longContent} />)
 
-      const contentEl = screen.getByText(longContent)
+      // The break-words class is on the parent <p> element
+      const contentEl = screen.getByText(longContent).closest('p')
       expect(contentEl).toHaveClass('break-words')
     })
   })

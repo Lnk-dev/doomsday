@@ -44,7 +44,7 @@ export function NetworkError({ variant = 'generic', title, description, showRetr
 
   const handleRetry = useCallback(() => {
     setIsRetrying(true)
-    onRetry ? onRetry() : window.location.reload()
+    if (onRetry) { onRetry() } else { window.location.reload() }
     setTimeout(() => setIsRetrying(false), 1000)
   }, [onRetry])
 

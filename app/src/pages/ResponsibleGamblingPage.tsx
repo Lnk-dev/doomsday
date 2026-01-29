@@ -8,7 +8,7 @@
  * - Gambling resources and support links
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -157,6 +157,15 @@ export function ResponsibleGamblingPage() {
   const [exclusionDays, setExclusionDays] = useState(7)
 
   const sessionDuration = getSessionDuration()
+
+  // Track current time for exclusion check - useState initializer captures time once
+  const [checkTime] = useState(() => Date.now())
+  const canEndExclusion = useMemo(() => {
+    if (!selfExclusion) return false
+    if (selfExclusion.type !== 'temporary') return false
+    if (!selfExclusion.endDate) return false
+    return checkTime >= selfExclusion.endDate
+  }, [selfExclusion, checkTime])
 
   return (
     <div className="flex flex-col min-h-full bg-[var(--color-bg-primary)] pb-20">
@@ -330,9 +339,7 @@ export function ResponsibleGamblingPage() {
               </button>
             </div>
           ) : (
-            selfExclusion.type === 'temporary' &&
-            selfExclusion.endDate &&
-            Date.now() >= selfExclusion.endDate && (
+            canEndExclusion && (
               <button
                 onClick={cancelSelfExclusion}
                 className="mt-4 w-full py-3 bg-[#00ba7c]/10 text-[#00ba7c] rounded-xl text-[14px] font-medium"

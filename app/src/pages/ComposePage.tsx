@@ -138,7 +138,7 @@ export function ComposePage() {
       } else {
         navigate('/life')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to upload images. Please try again.')
       setIsSubmitting(false)
     }

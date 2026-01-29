@@ -1,6 +1,5 @@
 import 'dotenv/config'
 import { createServer } from 'http'
-import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'

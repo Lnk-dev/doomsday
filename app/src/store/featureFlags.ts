@@ -118,6 +118,7 @@ export const useFeatureFlagsStore = create<FeatureFlagsState>()(
       clearOverride: (id: FeatureFlagId) => {
         set((state) => {
           const { [id]: _, ...rest } = state.overrides
+          void _
           return { overrides: rest }
         })
       },

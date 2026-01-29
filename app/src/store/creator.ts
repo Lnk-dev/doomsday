@@ -7,7 +7,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { EarningsHistoryEntry, CreatorStats } from '@/lib/creatorStats'
+import { calculateEngagementRate, type EarningsHistoryEntry, type CreatorStats } from '@/lib/creatorStats'
 
 /** Withdrawal request status */
 export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'failed'
@@ -147,7 +147,6 @@ export const useCreatorStore = create<CreatorState>()(
 
       getStats: () => {
         const state = get()
-        const { calculateEngagementRate } = require('@/lib/creatorStats')
 
         // Calculate monthly earnings
         const now = new Date()

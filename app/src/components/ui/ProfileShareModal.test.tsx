@@ -85,7 +85,7 @@ describe('ProfileShareModal', () => {
 
     it('should render share to X button', () => {
       render(<ProfileShareModal {...defaultProps} />)
-      expect(screen.getByText('Share to X')).toBeInTheDocument()
+      expect(screen.getByText('X / Twitter')).toBeInTheDocument()
     })
 
     it('should render copy username button', () => {

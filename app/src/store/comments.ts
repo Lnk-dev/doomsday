@@ -144,6 +144,7 @@ export const useCommentsStore = create<CommentsState>()(
           if (!comment) return state
 
           const { [commentId]: _, ...remainingComments } = state.comments
+          void _
 
           return {
             comments: remainingComments,

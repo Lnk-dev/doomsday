@@ -6,3 +6,4 @@
 export * from './errors'
 export * from './transaction'
 export * from './config'
+export * from './tokens'

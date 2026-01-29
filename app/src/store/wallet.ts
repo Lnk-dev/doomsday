@@ -2,6 +2,7 @@
  * Wallet Store
  * Issue #33: Implement Solana wallet connection
  * Issue #102: Wallet lifecycle and multi-wallet support
+ * Issue #34, #35: SPL Token balance tracking
  *
  * Zustand store for managing wallet connection state and balances.
  * Supports multiple wallets with primary wallet selection.
@@ -9,6 +10,9 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { Connection, PublicKey } from '@solana/web3.js'
+import { getTokenBalances } from '@/lib/solana/tokens'
+import { getNetworkConfig } from '@/lib/solana/config'
 
 /** Information about a connected wallet */
 export interface WalletInfo {
@@ -42,6 +46,7 @@ interface WalletState {
   doomBalance: number | null
   lifeBalance: number | null
   lastBalanceSync: number | null
+  isFetchingBalances: boolean
 
   setConnecting: (connecting: boolean) => void
   setConnectionError: (error: string | null) => void
@@ -58,6 +63,7 @@ interface WalletState {
   getConnectedWallets: () => WalletInfo[]
   clearHistory: () => void
   setAutoReconnect: (enabled: boolean) => void
+  fetchTokenBalances: (connection: Connection, publicKey: PublicKey) => Promise<void>
 }
 
 const initialState = {
@@ -71,6 +77,7 @@ const initialState = {
   doomBalance: null as number | null,
   lifeBalance: null as number | null,
   lastBalanceSync: null as number | null,
+  isFetchingBalances: false,
 }
 
 export const shortenAddress = (address: string, chars = 4): string => {
@@ -190,6 +197,69 @@ export const useWalletStore = create<WalletState>()(
       getConnectedWallets: () => Object.values(get().wallets),
       clearHistory: () => set({ connectionHistory: [] }),
       setAutoReconnect: (enabled) => set({ autoReconnect: enabled }),
+
+      fetchTokenBalances: async (connection: Connection, publicKey: PublicKey) => {
+        const state = get()
+        if (state.isFetchingBalances) return
+
+        set({ isFetchingBalances: true })
+
+        try {
+          // Fetch SOL balance
+          const solBalance = await connection.getBalance(publicKey)
+
+          // Get network config
+          const config = getNetworkConfig()
+
+          // Check if token mints are configured (not placeholders)
+          const hasValidMints =
+            config.tokens.doom.mint &&
+            config.tokens.life.mint &&
+            !config.tokens.doom.mint.includes('Placeholder') &&
+            !config.tokens.life.mint.includes('Placeholder')
+
+          let doomBalance = 0
+          let lifeBalance = 0
+
+          if (hasValidMints) {
+            // Fetch SPL token balances
+            const tokenBalances = await getTokenBalances(connection, publicKey)
+            doomBalance = Math.floor(tokenBalances.doom.uiAmount)
+            lifeBalance = Math.floor(tokenBalances.life.uiAmount)
+          }
+
+          const address = publicKey.toBase58()
+
+          // Update global balances
+          set({
+            solBalance,
+            doomBalance,
+            lifeBalance,
+            lastBalanceSync: Date.now(),
+            isFetchingBalances: false,
+          })
+
+          // Also update wallet-specific balances if wallet is tracked
+          if (state.wallets[address]) {
+            const wallet = state.wallets[address]
+            set({
+              wallets: {
+                ...state.wallets,
+                [address]: {
+                  ...wallet,
+                  solBalance,
+                  doomBalance,
+                  lifeBalance,
+                  lastBalanceSync: Date.now(),
+                },
+              },
+            })
+          }
+        } catch (error) {
+          console.error('Failed to fetch token balances:', error)
+          set({ isFetchingBalances: false })
+        }
+      },
     }),
     {
       name: 'doomsday-wallet',
@@ -202,6 +272,7 @@ export const useWalletStore = create<WalletState>()(
         doomBalance: state.doomBalance,
         lifeBalance: state.lifeBalance,
         lastBalanceSync: state.lastBalanceSync,
+        // Note: isFetchingBalances is intentionally not persisted
       }),
     }
   )

@@ -20,7 +20,9 @@ import adminAuthRouter from './routes/admin/auth'
 import adminAuditRouter from './routes/admin/audit'
 import adminFraudRouter from './routes/admin/fraud'
 import adminModerationRouter from './routes/admin/moderation'
+import adminJobsRouter from './routes/admin/jobs'
 import reportsRouter from './routes/reports'
+import { initializeWorkers, scheduleRecurringJobs, closeAllQueues } from './lib/jobs'
 
 initSentry()
 
@@ -40,6 +42,7 @@ app.route('/admin/auth', adminAuthRouter)
 app.route('/admin/audit', adminAuditRouter)
 app.route('/admin/fraud', adminFraudRouter)
 app.route('/admin/moderation', adminModerationRouter)
+app.route('/admin/jobs', adminJobsRouter)
 app.route('/reports', reportsRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
@@ -88,6 +91,8 @@ async function shutdown(signal: string): Promise<void> {
   try {
     // Close WebSocket connections
     io.close()
+    // Close job queues and workers
+    await closeAllQueues().catch(() => {})
     // Close Redis connection
     await closeRedis().catch(() => {})
     // Close database connection
@@ -104,8 +109,17 @@ process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))
 
 logger.info({ port }, 'Starting server with WebSocket support...')
-httpServer.listen(port, () => {
+httpServer.listen(port, async () => {
   logger.info({ port }, 'Server running with WebSocket support')
+
+  // Initialize job workers and schedule recurring jobs
+  try {
+    initializeWorkers()
+    await scheduleRecurringJobs()
+    logger.info('Background job system initialized')
+  } catch (error) {
+    logger.error({ error }, 'Failed to initialize job system')
+  }
 })
 
 export { io }

@@ -28,12 +28,10 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
 
-  // Reset index when opening
+  // Reset index when initialIndex changes (opening with different image)
   useEffect(() => {
-    if (isOpen) {
-      setCurrentIndex(initialIndex)
-    }
-  }, [isOpen, initialIndex])
+    setCurrentIndex(initialIndex)
+  }, [initialIndex])
 
   // Navigate to previous image
   const goToPrevious = useCallback(() => {

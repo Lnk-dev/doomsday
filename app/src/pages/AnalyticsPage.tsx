@@ -672,7 +672,7 @@ function TokensTab({
   analytics: ReturnType<typeof calculateTokenAnalytics>
 }) {
   const sourceData = Object.entries(analytics.bySource).map(([source, data]) => ({
-    name: getSourceDisplayName(source as any),
+    name: getSourceDisplayName(source as Parameters<typeof getSourceDisplayName>[0]),
     earned: data.earned,
     spent: data.spent,
   }))

@@ -96,11 +96,12 @@ export function useSpamDetection(
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Calculate account age
+  // Calculate account age - use state initializer to capture Date.now() once
+  const [mountTime] = useState(() => Date.now())
   const accountAgeMs = useMemo(() => {
     if (!accountCreatedAt) return undefined
-    return Date.now() - accountCreatedAt
-  }, [accountCreatedAt])
+    return mountTime - accountCreatedAt
+  }, [accountCreatedAt, mountTime])
 
   // Effective spam threshold
   const spamThreshold = customThreshold ?? SPAM_THRESHOLDS.SPAM_SCORE_THRESHOLD
@@ -109,6 +110,7 @@ export function useSpamDetection(
   const canPost = useMemo(() => {
     if (postTimestampsRef.current.length === 0) return true
     return !isRapidPosting(userId, postTimestampsRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, cooldownRemaining]) // cooldownRemaining triggers re-evaluation
 
   // Analyze content
@@ -133,23 +135,6 @@ export function useSpamDetection(
     },
     [userId, accountAgeMs, userPostCount, spamThreshold]
   )
-
-  // Record a post and update tracking
-  const recordPost = useCallback((content: string) => {
-    const now = Date.now()
-
-    // Add to timestamps
-    postTimestampsRef.current = [now, ...postTimestampsRef.current].slice(0, 20)
-
-    // Add to recent posts
-    recentPostsRef.current = [
-      { content, timestamp: now },
-      ...recentPostsRef.current,
-    ].slice(0, SPAM_THRESHOLDS.DUPLICATE_CHECK_WINDOW)
-
-    // Calculate cooldown
-    updateCooldown()
-  }, [])
 
   // Update cooldown timer
   const updateCooldown = useCallback(() => {
@@ -184,6 +169,23 @@ export function useSpamDetection(
       }, 1000)
     }
   }, [])
+
+  // Record a post and update tracking
+  const recordPost = useCallback((content: string) => {
+    const now = Date.now()
+
+    // Add to timestamps
+    postTimestampsRef.current = [now, ...postTimestampsRef.current].slice(0, 20)
+
+    // Add to recent posts
+    recentPostsRef.current = [
+      { content, timestamp: now },
+      ...recentPostsRef.current,
+    ].slice(0, SPAM_THRESHOLDS.DUPLICATE_CHECK_WINDOW)
+
+    // Calculate cooldown
+    updateCooldown()
+  }, [updateCooldown])
 
   // Reset state
   const reset = useCallback(() => {

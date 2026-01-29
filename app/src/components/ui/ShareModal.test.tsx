@@ -58,7 +58,7 @@ describe('ShareModal', () => {
 
     it('should render share to X button', () => {
       render(<ShareModal {...defaultProps} />)
-      expect(screen.getByText('Share to X')).toBeInTheDocument()
+      expect(screen.getByText('X / Twitter')).toBeInTheDocument()
     })
   })
 
@@ -99,7 +99,7 @@ describe('ShareModal', () => {
     it('should open Twitter share in new window', () => {
       render(<ShareModal {...defaultProps} />)
 
-      const twitterButton = screen.getByText('Share to X').closest('button')
+      const twitterButton = screen.getByText('X / Twitter').closest('button')
       fireEvent.click(twitterButton!)
 
       expect(window.open).toHaveBeenCalledWith(
@@ -155,7 +155,7 @@ describe('ShareModal', () => {
       const longContent = 'A'.repeat(150)
       render(<ShareModal {...defaultProps} content={longContent} />)
 
-      const twitterButton = screen.getByText('Share to X').closest('button')
+      const twitterButton = screen.getByText('X / Twitter').closest('button')
       fireEvent.click(twitterButton!)
 
       expect(window.open).toHaveBeenCalledWith(
@@ -169,7 +169,7 @@ describe('ShareModal', () => {
       const shortContent = 'Short content'
       render(<ShareModal {...defaultProps} content={shortContent} />)
 
-      const twitterButton = screen.getByText('Share to X').closest('button')
+      const twitterButton = screen.getByText('X / Twitter').closest('button')
       fireEvent.click(twitterButton!)
 
       expect(window.open).toHaveBeenCalledWith(

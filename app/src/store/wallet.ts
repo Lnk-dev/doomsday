@@ -133,6 +133,7 @@ export const useWalletStore = create<WalletState>()(
       removeWallet: (address) => {
         const state = get()
         const { [address]: _, ...remainingWallets } = state.wallets
+        void _
         const remaining = Object.keys(remainingWallets)
         set({
           wallets: remainingWallets,

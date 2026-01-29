@@ -1,28 +1,22 @@
 import { AlertTriangle, AlertOctagon, Info, Clock } from 'lucide-react'
-import type { Incident, IncidentSeverity, IncidentStatus } from '@/lib/statusPage'
+import type { Incident } from '@/lib/statusPage'
 import { IncidentSeverity as IS, IncidentStatus as IST, getSeverityColor, getSeverityLabel, getIncidentStatusLabel, formatStatusDate } from '@/lib/statusPage'
 
-function getSeverityIcon(severity: IncidentSeverity) {
-  switch (severity) {
-    case IS.CRITICAL: return AlertOctagon
-    case IS.MAJOR: return AlertTriangle
-    case IS.MINOR: return Info
-    default: return Info
-  }
-}
+const SEVERITY_ICONS = {
+  [IS.CRITICAL]: AlertOctagon,
+  [IS.MAJOR]: AlertTriangle,
+  [IS.MINOR]: Info,
+} as const
 
-function getStatusIcon(status: IncidentStatus) {
-  switch (status) {
-    case IST.INVESTIGATING: return AlertTriangle
-    case IST.IDENTIFIED: return Info
-    case IST.MONITORING: return Clock
-    case IST.RESOLVED: return Info
-    default: return Info
-  }
-}
+const STATUS_ICONS = {
+  [IST.INVESTIGATING]: AlertTriangle,
+  [IST.IDENTIFIED]: Info,
+  [IST.MONITORING]: Clock,
+  [IST.RESOLVED]: Info,
+} as const
 
 export function IncidentCard({ incident, expanded = false }: { incident: Incident; expanded?: boolean }) {
-  const Icon = getSeverityIcon(incident.severity)
+  const Icon = SEVERITY_ICONS[incident.severity] || Info
   const severityColor = getSeverityColor(incident.severity)
   const isResolved = incident.status === IST.RESOLVED
 
@@ -51,7 +45,7 @@ export function IncidentCard({ incident, expanded = false }: { incident: Inciden
       {(expanded || !isResolved) && incident.updates.length > 0 && (
         <div className="mt-4 ml-7 border-l-2 border-[var(--color-border)] pl-4 space-y-3">
           {incident.updates.slice().reverse().map((update) => {
-            const UpdateIcon = getStatusIcon(update.status)
+            const UpdateIcon = STATUS_ICONS[update.status] || Info
             return (
               <div key={update.id} className="relative">
                 <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-[var(--color-bg-primary)] border-2 border-[var(--color-border)]" />

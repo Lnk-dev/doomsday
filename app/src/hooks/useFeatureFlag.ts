@@ -86,6 +86,7 @@ export function useFeatureFlags(): {
   const userId = useFeatureFlagsStore((state) => state.userId)
   const flagsState = useFeatureFlagsStore((state) => state.flags)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const flags = useMemo(() => getAllFlags(), [getAllFlags, flagsState])
   const enabledFeatures = useMemo(
     () => getEnabledFeatures(),

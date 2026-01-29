@@ -84,9 +84,11 @@ export function GasEstimateTooltip({
 
   const congestionColor = getCongestionColor(congestionLevel)
 
-  // Random tip to display
-  const tipIndex = Math.floor(Math.random() * GAS_FEE_TIPS.length)
-  const currentTip = GAS_FEE_TIPS[tipIndex]
+  // Stable random tip - only changes when component mounts
+  const [currentTip] = useState(() => {
+    const tipIndex = Math.floor(Math.random() * GAS_FEE_TIPS.length)
+    return GAS_FEE_TIPS[tipIndex]
+  })
 
   return (
     <div

@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
 import { users } from '../db/schema'
-import { generateToken, generateRefreshToken, verifyToken } from '../lib/jwt'
+import { generateToken, verifyToken } from '../lib/jwt'
 import { registerSchema } from '../lib/validators'
 
 const auth = new Hono()

@@ -21,7 +21,7 @@ export function TransactionReceipt({ transaction, onClose }: TransactionReceiptP
   const handleShare = async () => {
     if (!transaction.signature) return
     const text = `Transaction Receipt\n\nType: ${getTypeName(transaction.type)}\n${metadata?.amount !== undefined ? `Amount: ${isOutgoing ? '-' : '+'}${formatNumber(metadata.amount)} ${metadata?.token || ''}\n` : ''}Status: Confirmed\nDate: ${formatDate(transaction.createdAt)}\n\nView: ${getExplorerUrl(transaction.signature, 'tx')}`
-    if (navigator.share) try { await navigator.share({ title: 'Transaction Receipt', text }) } catch {}
+    if (navigator.share) try { await navigator.share({ title: 'Transaction Receipt', text }) } catch { /* share cancelled */ }
     else await navigator.clipboard.writeText(text)
   }
 

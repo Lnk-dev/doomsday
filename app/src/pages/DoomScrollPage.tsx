@@ -95,33 +95,41 @@ export function DoomScrollPage() {
   }, [posts, activeTab, following, isHidden])
 
   // Sort posts based on selected option
-  const sortedPosts = useMemo(() => {
+  const { sortedPosts, rankedResults } = useMemo(() => {
     const sorted = [...filteredPosts]
 
     if (sortBy === 'personalized' && activeTab === 'foryou') {
       // Use personalized ranking algorithm
       const ranked = rankPosts(sorted, userProfile)
-
-      // Store scored posts for explanations
-      const newScoredPosts = new Map<string, ScoredPost>()
-      ranked.forEach((sp) => newScoredPosts.set(sp.post.id, sp))
-      setScoredPosts(newScoredPosts)
-
-      return ranked.map((sp) => sp.post)
+      return { sortedPosts: ranked.map((sp) => sp.post), rankedResults: ranked }
     }
 
+    let result: Post[]
     switch (sortBy) {
       case 'hot':
       case 'personalized': // Fall back to hot for following tab
-        return sorted.sort((a, b) => getHotScore(b) - getHotScore(a))
+        result = sorted.sort((a, b) => getHotScore(b) - getHotScore(a))
+        break
       case 'new':
-        return sorted.sort((a, b) => b.createdAt - a.createdAt)
+        result = sorted.sort((a, b) => b.createdAt - a.createdAt)
+        break
       case 'top':
-        return sorted.sort((a, b) => b.likes - a.likes)
+        result = sorted.sort((a, b) => b.likes - a.likes)
+        break
       default:
-        return sorted
+        result = sorted
     }
+    return { sortedPosts: result, rankedResults: null }
   }, [filteredPosts, sortBy, activeTab, userProfile])
+
+  // Update scored posts when ranking results change
+  useEffect(() => {
+    if (rankedResults) {
+      const newScoredPosts = new Map<string, ScoredPost>()
+      rankedResults.forEach((sp) => newScoredPosts.set(sp.post.id, sp))
+      setScoredPosts(newScoredPosts)
+    }
+  }, [rankedResults])
 
   /** Handle like button click */
   const handleLike = useCallback((postId: string, isLiked: boolean, post: Post) => {

@@ -4,22 +4,19 @@ import { ServiceCard } from '@/components/status/ServiceCard'
 import { IncidentCard } from '@/components/status/IncidentCard'
 import { calculateOverallStatus, getStatusColor, getStatusLabel, ServiceStatus } from '@/lib/statusPage'
 
-function getOverallIcon(status: typeof ServiceStatus[keyof typeof ServiceStatus]) {
-  switch (status) {
-    case ServiceStatus.OPERATIONAL: return CheckCircle
-    case ServiceStatus.DEGRADED: return AlertTriangle
-    case ServiceStatus.PARTIAL_OUTAGE: return MinusCircle
-    case ServiceStatus.MAJOR_OUTAGE: return AlertOctagon
-    case ServiceStatus.MAINTENANCE: return Wrench
-    default: return MinusCircle
-  }
-}
+const STATUS_ICONS = {
+  [ServiceStatus.OPERATIONAL]: CheckCircle,
+  [ServiceStatus.DEGRADED]: AlertTriangle,
+  [ServiceStatus.PARTIAL_OUTAGE]: MinusCircle,
+  [ServiceStatus.MAJOR_OUTAGE]: AlertOctagon,
+  [ServiceStatus.MAINTENANCE]: Wrench,
+} as const
 
 export function StatusPage() {
   const { services, isSubscribed, toggleSubscription, getActiveIncidents, getRecentIncidents } = useStatusStore()
 
   const overallStatus = calculateOverallStatus(services)
-  const OverallIcon = getOverallIcon(overallStatus)
+  const OverallIcon = STATUS_ICONS[overallStatus] || MinusCircle
   const overallColor = getStatusColor(overallStatus)
   const overallLabel = getStatusLabel(overallStatus)
 

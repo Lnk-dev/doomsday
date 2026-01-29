@@ -89,7 +89,7 @@ function ReasonItem({
   isPrimary?: boolean
   variantColor: string
 }) {
-  const Icon = getReasonIcon(reason.type)
+  const Icon = REASON_ICONS[reason.type] || HelpCircle
   const text = getExplanationText(reason)
 
   return (
@@ -104,26 +104,15 @@ function ReasonItem({
   )
 }
 
-function getReasonIcon(type: ExplanationReason['type']) {
-  switch (type) {
-    case 'following':
-      return Users
-    case 'author_affinity':
-      return Heart
-    case 'topic_interest':
-      return Star
-    case 'social_proof':
-      return Users
-    case 'trending':
-      return TrendingUp
-    case 'fresh_content':
-      return Clock
-    case 'popular':
-      return TrendingUp
-    default:
-      return HelpCircle
-  }
-}
+const REASON_ICONS = {
+  following: Users,
+  author_affinity: Heart,
+  topic_interest: Star,
+  social_proof: Users,
+  trending: TrendingUp,
+  fresh_content: Clock,
+  popular: TrendingUp,
+} as const
 
 function SignalBar({ label, value }: { label: string; value: number }) {
   const percentage = Math.round(value * 100)

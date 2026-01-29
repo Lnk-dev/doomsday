@@ -799,5 +799,43 @@ export const audit = {
         details,
         reason,
       }),
+
+    verificationReview: (
+      adminId: string,
+      details: { requestId: string; userId: string; username?: string; approved: boolean; rejectionReason?: string }
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        action: details.approved ? 'verification.approved' : 'verification.rejected',
+        category: 'admin',
+        severity: 'info',
+        resourceType: 'verification_request',
+        resourceId: details.requestId,
+        details: {
+          userId: details.userId,
+          username: details.username,
+          approved: details.approved,
+          rejectionReason: details.rejectionReason,
+        },
+      }),
+
+    verificationRevoke: (
+      adminId: string,
+      details: { userId: string; username: string; reason?: string }
+    ) =>
+      logAudit({
+        actorId: adminId,
+        actorType: 'admin',
+        action: 'verification.revoked',
+        category: 'admin',
+        severity: 'warning',
+        resourceType: 'user',
+        resourceId: details.userId,
+        details: {
+          username: details.username,
+        },
+        reason: details.reason,
+      }),
   },
 }

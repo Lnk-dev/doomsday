@@ -27,6 +27,8 @@ import emailRouter from './routes/email'
 import gdprRouter from './routes/gdpr'
 import pushRouter from './routes/push'
 import geoRouter from './routes/geo'
+import { verificationRouter } from './routes/verification'
+import { adminVerificationRouter } from './routes/admin/verification'
 import { geoDetection } from './middleware/geoBlock'
 import { initializeWorkers, scheduleRecurringJobs, closeAllQueues } from './lib/jobs'
 
@@ -57,6 +59,8 @@ app.route('/email', emailRouter)
 app.route('/gdpr', gdprRouter)
 app.route('/push', pushRouter)
 app.route('/geo', geoRouter)
+app.route('/verification', verificationRouter)
+app.route('/admin/verification', adminVerificationRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

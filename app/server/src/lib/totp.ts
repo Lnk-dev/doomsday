@@ -1,12 +1,14 @@
 /**
  * TOTP (Time-based One-Time Password) Utilities
  *
- * Provides functions for 2FA setup, verification, and backup codes
+ * Provides functions for 2FA setup, verification, and backup codes.
+ * Secrets are encrypted at rest using AES-256-GCM.
  */
 
 import { generateSecret as genSecret, generateURI, verifySync } from 'otplib'
 import * as QRCode from 'qrcode'
 import { randomBytes, createHash } from 'crypto'
+import { encrypt, decrypt, isEncrypted } from './encryption'
 
 const APP_NAME = 'Doomsday Admin'
 
@@ -15,6 +17,30 @@ const APP_NAME = 'Doomsday Admin'
  */
 export function generateSecret(): string {
   return genSecret()
+}
+
+/**
+ * Encrypt a TOTP secret for storage
+ */
+export function encryptSecret(secret: string): string {
+  return encrypt(secret)
+}
+
+/**
+ * Decrypt a stored TOTP secret
+ * Handles both encrypted and legacy unencrypted secrets
+ */
+export function decryptSecret(encryptedSecret: string): string | null {
+  if (!encryptedSecret) return null
+
+  // Check if this is an encrypted value
+  if (isEncrypted(encryptedSecret)) {
+    return decrypt(encryptedSecret)
+  }
+
+  // Legacy unencrypted secret (base32 format, typically 32 chars)
+  // Return as-is for backwards compatibility during migration
+  return encryptedSecret
 }
 
 /**
@@ -34,9 +60,16 @@ export async function generateQRCode(secret: string, username: string): Promise<
 
 /**
  * Verify a TOTP token
+ * Automatically decrypts the secret if it's encrypted
  */
-export function verifyToken(token: string, secret: string): boolean {
+export function verifyToken(token: string, storedSecret: string): boolean {
   try {
+    // Decrypt the secret if it's encrypted
+    const secret = decryptSecret(storedSecret)
+    if (!secret) {
+      return false
+    }
+
     const result = verifySync({ token, secret })
     return result.valid
   } catch {

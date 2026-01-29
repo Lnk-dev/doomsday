@@ -63,6 +63,22 @@ body {
   animation: slide-up 0.3s ease-out;
 }
 
+/* Slide-down animation for notifications */
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
 /* ==========================================
    Accessibility Styles (WCAG 2.1 AA)
    ========================================== */

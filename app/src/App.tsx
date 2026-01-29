@@ -33,6 +33,8 @@ const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPa
 const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
 const BettingLimitsPage = lazy(() => import('@/pages/BettingLimitsPage').then(m => ({ default: m.BettingLimitsPage })))
 const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
+const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
+const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -169,9 +171,19 @@ function App() {
               <ResponsibleGamblingPage />
             </Suspense>
           } />
+          <Route path="/hashtag/:tag" element={
+            <Suspense fallback={<PageLoader />}>
+              <HashtagPage />
+            </Suspense>
+          } />
           <Route path="/status" element={
             <Suspense fallback={<PageLoader />}>
               <StatusPage />
+            </Suspense>
+          } />
+          <Route path="/subscription" element={
+            <Suspense fallback={<PageLoader />}>
+              <SubscriptionPage />
             </Suspense>
           } />
           <Route path="/settings/betting-limits" element={

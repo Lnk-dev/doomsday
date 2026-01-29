@@ -29,6 +29,7 @@ import {
   Flame,
   Award,
   Trophy,
+  BarChart3,
 } from 'lucide-react'
 import {
   useUserStore,
@@ -264,7 +265,7 @@ export function ProfilePage() {
       {/* Leaderboard button */}
       <button
         onClick={() => navigate('/leaderboard')}
-        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#ff6b3510] border border-[#ff6b3530] hover:bg-[#ff6b3520] transition-colors"
+        className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#ff6b3510] border border-[#ff6b3530] hover:bg-[#ff6b3520] transition-colors"
       >
         <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
           <Trophy size={20} className="text-[#ff6b35]" />
@@ -274,6 +275,21 @@ export function ProfilePage() {
           <p className="text-[12px] text-[#ff6b35]">View top doomers</p>
         </div>
         <ChevronRight size={20} className="text-[#ff6b35]" />
+      </button>
+
+      {/* Analytics button */}
+      <button
+        onClick={() => navigate('/analytics')}
+        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#1d9bf010] border border-[#1d9bf030] hover:bg-[#1d9bf020] transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-[#1d9bf020] flex items-center justify-center">
+          <BarChart3 size={20} className="text-[#1d9bf0]" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-[14px] font-semibold text-white">Analytics</p>
+          <p className="text-[12px] text-[#1d9bf0]">Posts, bets & token insights</p>
+        </div>
+        <ChevronRight size={20} className="text-[#1d9bf0]" />
       </button>
 
       {/* Streak Card */}

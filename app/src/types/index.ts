@@ -177,3 +177,29 @@ export interface Comment {
   /** Error message if comment failed */
   error?: string
 }
+
+/**
+ * Token transaction for analytics tracking
+ */
+export interface TokenTransaction {
+  id: ID
+  /** Transaction type: earn (received) or spend (sent/used) */
+  type: 'earn' | 'spend'
+  /** Which token was involved */
+  tokenType: 'doom' | 'life'
+  /** Amount of tokens */
+  amount: number
+  /** Source/reason for the transaction */
+  source:
+    | 'bet_win'
+    | 'bet_place'
+    | 'life_post'
+    | 'donation_sent'
+    | 'donation_received'
+    | 'initial'
+    | 'streak_bonus'
+  /** Human-readable description */
+  description: string
+  /** When the transaction occurred */
+  createdAt: Timestamp
+}

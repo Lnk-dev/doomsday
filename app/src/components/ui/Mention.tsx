@@ -5,6 +5,7 @@
  * Clickable mention component that links to user profiles.
  */
 
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MENTION_REGEX } from '@/lib/mentions'
 
@@ -58,7 +59,7 @@ interface MentionTextProps {
  * Parse content and render mentions as clickable components
  */
 export function MentionText({ content, variant = 'default' }: MentionTextProps) {
-  const parts: (string | JSX.Element)[] = []
+  const parts: React.ReactNode[] = []
   let lastIndex = 0
 
   // Create a new regex instance for each call

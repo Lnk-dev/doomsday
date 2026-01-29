@@ -75,11 +75,6 @@ export function ComposePage() {
     setError(null)
   }, [])
 
-  /** Handle content blur for validation */
-  const handleContentBlur = useCallback(() => {
-    setTouched(true)
-  }, [])
-
   /** Handle post submission */
   const handlePost = () => {
     // Mark as touched to show validation errors

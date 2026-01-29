@@ -37,6 +37,7 @@ const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ defaul
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const EmbedPostPage = lazy(() => import('@/pages/EmbedPostPage').then(m => ({ default: m.EmbedPostPage })))
+const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -207,6 +208,11 @@ function App() {
           <Route path="/activity" element={
             <Suspense fallback={<PageLoader />}>
               <ActivityPage />
+            </Suspense>
+          } />
+          <Route path="/analytics" element={
+            <Suspense fallback={<PageLoader />}>
+              <AnalyticsPage />
             </Suspense>
           } />
           <Route path="*" element={

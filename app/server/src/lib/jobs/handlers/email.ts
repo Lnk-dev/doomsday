@@ -1,42 +1,42 @@
 /**
  * Email Job Handler
  *
- * Processes email sending jobs asynchronously.
+ * Processes email sending jobs asynchronously using the email service.
  */
 
 import type { Job } from 'bullmq'
 import { logger } from '../../logger'
+import { emailService, type EmailTemplate } from '../../email'
 
 export interface EmailJobData {
-  type: 'welcome' | 'verification' | 'password_reset' | 'notification' | 'digest'
+  type: EmailTemplate
   to: string
   subject: string
   templateData: Record<string, unknown>
+  category?: 'transactional' | 'marketing'
 }
 
 /**
  * Email job handler
- * In production, this would integrate with an email service like Resend, SendGrid, etc.
  */
 export async function emailHandler(job: Job<EmailJobData>): Promise<void> {
-  const { type, to, subject, templateData } = job.data
+  const { type, to, subject, templateData, category = 'transactional' } = job.data
 
   logger.info({ type, to, subject }, 'Processing email job')
 
-  // Simulate email sending (replace with actual email service)
-  // In production:
-  // await emailService.send({ to, subject, template: type, data: templateData })
-
-  // For now, just log what would be sent
-  logger.info({
-    type,
+  const result = await emailService.send({
     to,
     subject,
-    templateData,
-  }, 'Email would be sent')
+    template: type,
+    data: templateData,
+    category,
+  })
 
-  // Simulate processing time
-  await new Promise((resolve) => setTimeout(resolve, 100))
+  if (!result.success) {
+    throw new Error(result.error || 'Failed to send email')
+  }
+
+  logger.info({ type, to, messageId: result.messageId }, 'Email job completed')
 }
 
 /**
@@ -51,30 +51,69 @@ export const EmailJobs = {
   }),
 
   verification: (to: string, data: { verificationUrl: string }) => ({
-    type: 'verification' as const,
+    type: 'email-verification' as const,
     to,
     subject: 'Verify your email',
     templateData: data,
   }),
 
   passwordReset: (to: string, data: { resetUrl: string; expiresIn: string }) => ({
-    type: 'password_reset' as const,
+    type: 'password-reset' as const,
     to,
     subject: 'Reset your password',
     templateData: data,
   }),
 
-  notification: (to: string, data: { title: string; message: string; actionUrl?: string }) => ({
-    type: 'notification' as const,
+  betOutcome: (to: string, data: {
+    username: string
+    eventTitle: string
+    won: boolean
+    payout: number
+    eventUrl: string
+    unsubscribeUrl: string
+  }) => ({
+    type: 'bet-outcome' as const,
     to,
-    subject: data.title,
+    subject: data.won ? 'Congratulations! You won!' : 'Prediction resolved',
     templateData: data,
   }),
 
-  digest: (to: string, data: { period: string; stats: Record<string, unknown> }) => ({
-    type: 'digest' as const,
+  newFollower: (to: string, data: {
+    username: string
+    followerName: string
+    followerUrl: string
+    unsubscribeUrl: string
+  }) => ({
+    type: 'new-follower' as const,
     to,
-    subject: `Your ${data.period} Doomsday digest`,
+    subject: `${data.followerName} started following you`,
     templateData: data,
+  }),
+
+  mention: (to: string, data: {
+    username: string
+    mentionerName: string
+    preview: string
+    postUrl: string
+    unsubscribeUrl: string
+  }) => ({
+    type: 'mention' as const,
+    to,
+    subject: `${data.mentionerName} mentioned you`,
+    templateData: data,
+  }),
+
+  weeklyDigest: (to: string, data: {
+    username: string
+    weekStart: string
+    weekEnd: string
+    stats: { betsPlaced: number; betsWon: number; pointsEarned: number }
+    unsubscribeUrl: string
+  }) => ({
+    type: 'weekly-digest' as const,
+    to,
+    subject: 'Your Weekly Doomsday Recap',
+    templateData: data,
+    category: 'marketing' as const,
   }),
 }

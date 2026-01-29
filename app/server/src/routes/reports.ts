@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { eq, and } from 'drizzle-orm'
 import { db } from '../db'
 import { reports, posts, comments } from '../db/schema'
-import { requireAuth, type AuthContext } from '../middleware/auth'
+import { requireAuth } from '../middleware/auth'
 import { audit } from '../lib/auditLogger'
 import { apiRateLimit } from '../middleware/rateLimit'
 
@@ -51,7 +51,7 @@ reportsRouter.post(
   requireAuth,
   zValidator('json', createReportSchema),
   async (c) => {
-    const userId = (c as AuthContext).get('userId')
+    const userId = c.get('userId')
     const { postId, commentId, reason, details } = c.req.valid('json')
 
     // Determine what is being reported and get the reported user
@@ -134,7 +134,7 @@ reportsRouter.post(
  * Get reports submitted by the current user
  */
 reportsRouter.get('/mine', requireAuth, async (c) => {
-  const userId = (c as AuthContext).get('userId')
+  const userId = c.get('userId')
 
   const userReports = await db
     .select({

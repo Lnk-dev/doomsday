@@ -24,9 +24,25 @@ const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expi
 
 export interface JwtPayload { userId: string; walletAddress?: string }
 export interface AdminJwtPayload { adminId: string; pending2FA?: boolean }
+export interface EmailVerificationPayload { userId: string; email: string; purpose: 'email-verification' }
 
 export function generateToken(payload: JwtPayload | AdminJwtPayload, expiresIn?: string): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: (expiresIn || JWT_EXPIRES_IN) as SignOptions['expiresIn'] })
+}
+
+export function generateEmailVerificationToken(userId: string, email: string): string {
+  const payload: EmailVerificationPayload = { userId, email, purpose: 'email-verification' }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' as SignOptions['expiresIn'] })
+}
+
+export function verifyEmailVerificationToken(token: string): EmailVerificationPayload | null {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as EmailVerificationPayload
+    if (payload.purpose !== 'email-verification') return null
+    return payload
+  } catch {
+    return null
+  }
 }
 
 export function verifyToken(token: string): JwtPayload | null {

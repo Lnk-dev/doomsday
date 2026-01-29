@@ -42,6 +42,7 @@ const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then(m => ({ de
 const InboxPage = lazy(() => import('@/pages/InboxPage').then(m => ({ default: m.InboxPage })))
 const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
 const NewMessagePage = lazy(() => import('@/pages/NewMessagePage').then(m => ({ default: m.NewMessagePage })))
+const EmailVerificationPage = lazy(() => import('@/pages/EmailVerificationPage').then(m => ({ default: m.EmailVerificationPage })))
 
 // Admin routes (separate bundle)
 const AdminRoutes = lazy(() => import('@/admin/AdminRoutes'))
@@ -84,6 +85,12 @@ function App() {
           <Route path="/embed/post/:postId" element={
             <Suspense fallback={<PageLoader />}>
               <EmbedPostPage />
+            </Suspense>
+          } />
+          {/* Email verification (outside AppLayout) */}
+          <Route path="/verify-email" element={
+            <Suspense fallback={<PageLoader />}>
+              <EmailVerificationPage />
             </Suspense>
           } />
           {/* Admin dashboard (separate bundle, outside main AppLayout) */}

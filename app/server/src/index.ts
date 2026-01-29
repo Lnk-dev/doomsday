@@ -6,6 +6,7 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from './lib/logger'
 import { initSentry, captureError } from './lib/sentry'
 import { closeDatabase } from './db'
+import { closeRedis } from './lib/cache'
 import { requestLogger } from './middleware/logger'
 import { requestId } from './middleware/requestId'
 import { apiSecurityHeaders } from './middleware/security'
@@ -87,6 +88,9 @@ async function shutdown(signal: string): Promise<void> {
   try {
     // Close WebSocket connections
     io.close()
+    // Close Redis connection
+    await closeRedis().catch(() => {})
+    // Close database connection
     await closeDatabase()
     logger.info('Graceful shutdown completed')
     process.exit(0)

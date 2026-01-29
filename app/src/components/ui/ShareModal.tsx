@@ -20,9 +20,11 @@ import {
   Mail,
   Download,
   Hash,
+  Code2,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import QRCode from 'qrcode'
+import { EmbedCodeModal } from './EmbedCodeModal'
 
 interface ShareModalProps {
   /** Post ID to generate share link */
@@ -36,6 +38,7 @@ interface ShareModalProps {
 export function ShareModal({ postId, content, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [showEmbed, setShowEmbed] = useState(false)
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
 
   // Generate share URL (would use actual domain in production)
@@ -205,6 +208,12 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
       icon: QrCode,
       onClick: () => setShowQR(true),
     },
+    {
+      id: 'embed',
+      label: 'Embed',
+      icon: Code2,
+      onClick: () => setShowEmbed(true),
+    },
     ...('share' in navigator
       ? [
           {
@@ -322,6 +331,11 @@ export function ShareModal({ postId, content, onClose }: ShareModalProps) {
         {/* Safe area padding for mobile */}
         <div className="h-6" />
       </div>
+
+      {/* Embed Code Modal */}
+      {showEmbed && (
+        <EmbedCodeModal postId={postId} onClose={() => setShowEmbed(false)} />
+      )}
     </div>
   )
 }

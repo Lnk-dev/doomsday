@@ -15,6 +15,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Heart, MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal } from 'lucide-react'
+import { PostContent } from './PostContent'
 
 interface ThreadPostProps {
   /** Post ID for navigation */
@@ -192,15 +193,8 @@ export function ThreadPost({
           </div>
         </div>
 
-        {/* Post content */}
-        <p
-          onClick={onClick}
-          className={`text-[15px] text-white mt-0.5 whitespace-pre-wrap break-words ${
-            onClick ? 'cursor-pointer' : ''
-          }`}
-        >
-          {content}
-        </p>
+        {/* Post content with clickable hashtags */}
+        <PostContent content={content} variant={variant} onClick={onClick} />
 
         {/* Quote repost embedded post */}
         {isQuoteRepost && originalPost && (

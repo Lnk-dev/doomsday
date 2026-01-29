@@ -41,7 +41,7 @@ export function EarningsChart({ className = '' }: EarningsChartProps) {
   // Format label for display
   const formatLabel = (label: string, chartPeriod: ChartPeriod): string => {
     if (chartPeriod === 'month') {
-      const [year, month] = label.split('-')
+      const [, month] = label.split('-')
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
       return monthNames[parseInt(month, 10) - 1] || label
     }

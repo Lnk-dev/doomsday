@@ -5,7 +5,6 @@
  * Displays creator earnings summary with total, monthly, and pending amounts.
  */
 
-import { useState } from 'react'
 import { DollarSign, TrendingUp, TrendingDown, Clock, ArrowUpRight } from 'lucide-react'
 import { useCreatorStore, usePendingPayouts } from '@/store/creator'
 import { formatEarnings, getEarningsTrend, formatPercentage } from '@/lib/creatorStats'

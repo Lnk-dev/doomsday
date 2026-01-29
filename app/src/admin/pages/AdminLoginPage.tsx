@@ -1,21 +1,24 @@
 /**
  * Admin Login Page
  *
- * Authentication page for admin dashboard access
+ * Authentication page for admin dashboard access with 2FA support
  */
 
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, AlertCircle, Shield } from 'lucide-react'
 import { useAdminAuthStore } from '../store/adminAuth'
+import { TwoFactorVerify } from '../components/auth'
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
 
   const isAuthenticated = useAdminAuthStore((state) => state.isAuthenticated)
   const isLoading = useAdminAuthStore((state) => state.isLoading)
+  const requires2FA = useAdminAuthStore((state) => state.requires2FA)
   const error = useAdminAuthStore((state) => state.error)
   const login = useAdminAuthStore((state) => state.login)
+  const cancel2FA = useAdminAuthStore((state) => state.cancel2FA)
   const clearError = useAdminAuthStore((state) => state.clearError)
 
   const [username, setUsername] = useState('')
@@ -40,10 +43,25 @@ export function AdminLoginPage() {
       return
     }
 
-    const success = await login(username.trim(), password)
-    if (success) {
+    const result = await login(username.trim(), password)
+    if (result === 'success') {
       navigate('/admin', { replace: true })
     }
+    // If result is 'requires_2fa', the store will update and show TwoFactorVerify
+  }
+
+  // Show 2FA verification if required
+  if (requires2FA) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+        <TwoFactorVerify
+          onCancel={() => {
+            cancel2FA()
+            setPassword('')
+          }}
+        />
+      </div>
+    )
   }
 
   return (

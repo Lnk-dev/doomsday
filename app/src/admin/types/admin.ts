@@ -13,6 +13,7 @@ export interface AdminUser {
   role: AdminRole
   createdAt: number
   lastLoginAt?: number
+  twoFactorEnabled?: boolean
 }
 
 // Admin session
@@ -270,3 +271,40 @@ export type Permission =
   | 'events.resolve'
   | 'events.void'
   | '*'
+
+// 2FA types
+export interface TwoFactorSetupResponse {
+  secret: string
+  qrCode: string
+}
+
+export interface TwoFactorVerifyRequest {
+  code: string
+  secret: string
+}
+
+export interface TwoFactorVerifyResponse {
+  success: boolean
+  backupCodes: string[]
+}
+
+export interface TwoFactorDisableRequest {
+  password: string
+}
+
+export interface TwoFactorRegenerateRequest {
+  code: string
+}
+
+export interface TwoFactorRegenerateResponse {
+  backupCodes: string[]
+}
+
+export interface Verify2FARequest {
+  code: string
+}
+
+export interface LoginResponseWith2FA extends LoginResponse {
+  requires2FA?: boolean
+  tempToken?: string
+}

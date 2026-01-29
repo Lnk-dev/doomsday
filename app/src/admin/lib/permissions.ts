@@ -60,6 +60,12 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
     icon: 'Calendar',
     roles: ['super_admin', 'moderator'],
   },
+  {
+    to: '/admin/settings',
+    label: 'Settings',
+    icon: 'Settings',
+    roles: ['super_admin', 'moderator', 'analyst', 'support'],
+  },
 ]
 
 /**

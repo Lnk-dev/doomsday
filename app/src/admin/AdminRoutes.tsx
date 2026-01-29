@@ -14,6 +14,7 @@ import {
   AdminModerationPage,
   AdminAnalyticsPage,
   AdminEventsPage,
+  AdminSettingsPage,
 } from './pages'
 
 export default function AdminRoutes() {
@@ -29,6 +30,7 @@ export default function AdminRoutes() {
         <Route path="moderation" element={<AdminModerationPage />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
         <Route path="events" element={<AdminEventsPage />} />
+        <Route path="settings" element={<AdminSettingsPage />} />
       </Route>
 
       {/* Catch all - redirect to admin dashboard */}

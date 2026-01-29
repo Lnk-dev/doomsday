@@ -11,6 +11,7 @@ import {
   Shield,
   BarChart3,
   Calendar,
+  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -26,6 +27,7 @@ const ICONS: Record<string, React.ElementType> = {
   Shield,
   BarChart3,
   Calendar,
+  Settings,
 }
 
 interface AdminSidebarProps {

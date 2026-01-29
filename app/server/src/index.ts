@@ -22,6 +22,7 @@ import adminFraudRouter from './routes/admin/fraud'
 import adminModerationRouter from './routes/admin/moderation'
 import adminJobsRouter from './routes/admin/jobs'
 import reportsRouter from './routes/reports'
+import emailRouter from './routes/email'
 import { initializeWorkers, scheduleRecurringJobs, closeAllQueues } from './lib/jobs'
 
 initSentry()
@@ -44,6 +45,7 @@ app.route('/admin/fraud', adminFraudRouter)
 app.route('/admin/moderation', adminModerationRouter)
 app.route('/admin/jobs', adminJobsRouter)
 app.route('/reports', reportsRouter)
+app.route('/email', emailRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

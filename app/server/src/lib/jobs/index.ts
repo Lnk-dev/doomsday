@@ -7,6 +7,7 @@
 
 import {
   QueueNames,
+  type QueueName,
   registerWorker,
   addJob,
   addBulkJobs,
@@ -99,4 +100,4 @@ export {
   EmailJobs,
   NotificationJobs,
 }
-export type { EmailJobData, NotificationJobData, EventResolutionJobData, BatchPayoutJobData, AnalyticsJobData, CleanupJobData }
+export type { QueueName, EmailJobData, NotificationJobData, EventResolutionJobData, BatchPayoutJobData, AnalyticsJobData, CleanupJobData }

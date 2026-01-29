@@ -103,6 +103,8 @@ export const fraudAlertTypeEnum = pgEnum('fraud_alert_type', [
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   walletAddress: text('wallet_address').unique(),
+  email: text('email').unique(),
+  emailVerified: boolean('email_verified').default(false),
   username: text('username').notNull().unique(),
   displayName: text('display_name'),
   bio: text('bio'),
@@ -112,9 +114,10 @@ export const users = pgTable('users', {
   lifeBalance: integer('life_balance').default(0),
   daysLiving: integer('days_living').default(0),
   lifePosts: integer('life_posts').default(0),
+  emailPreferences: text('email_preferences'), // JSON stored as text
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (t) => [index('users_wallet_idx').on(t.walletAddress), index('users_username_idx').on(t.username)])
+}, (t) => [index('users_wallet_idx').on(t.walletAddress), index('users_username_idx').on(t.username), index('users_email_idx').on(t.email)])
 
 // Admin users for dashboard access
 export const adminUsers = pgTable('admin_users', {

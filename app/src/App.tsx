@@ -32,6 +32,7 @@ const OnboardingPage = lazy(() => import('@/pages/OnboardingPage').then(m => ({ 
 const ResponsibleGamblingPage = lazy(() => import('@/pages/ResponsibleGamblingPage').then(m => ({ default: m.ResponsibleGamblingPage })))
 const StatusPage = lazy(() => import('@/pages/StatusPage').then(m => ({ default: m.StatusPage })))
 const BettingLimitsPage = lazy(() => import('@/pages/BettingLimitsPage').then(m => ({ default: m.BettingLimitsPage })))
+const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -176,6 +177,11 @@ function App() {
           <Route path="/settings/betting-limits" element={
             <Suspense fallback={<PageLoader />}>
               <BettingLimitsPage />
+            </Suspense>
+          } />
+          <Route path="/creator" element={
+            <Suspense fallback={<PageLoader />}>
+              <CreatorDashboardPage />
             </Suspense>
           } />
           <Route path="*" element={

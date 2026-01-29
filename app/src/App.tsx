@@ -35,6 +35,7 @@ const BettingLimitsPage = lazy(() => import('@/pages/BettingLimitsPage').then(m 
 const CreatorDashboardPage = lazy(() => import('@/pages/CreatorDashboardPage').then(m => ({ default: m.CreatorDashboardPage })))
 const HashtagPage = lazy(() => import('@/pages/HashtagPage').then(m => ({ default: m.HashtagPage })))
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m => ({ default: m.SubscriptionPage })))
+const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 
 /** Loading spinner shown during lazy load */
 function PageLoader() {
@@ -194,6 +195,11 @@ function App() {
           <Route path="/creator" element={
             <Suspense fallback={<PageLoader />}>
               <CreatorDashboardPage />
+            </Suspense>
+          } />
+          <Route path="/activity" element={
+            <Suspense fallback={<PageLoader />}>
+              <ActivityPage />
             </Suspense>
           } />
           <Route path="*" element={

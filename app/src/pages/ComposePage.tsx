@@ -12,12 +12,14 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { FormField } from '@/components/ui/FormField'
+import { MentionInput } from '@/components/ui/MentionInput'
 import { X, Image, Globe, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useState, useMemo, useCallback } from 'react'
-import { usePostsStore, useUserStore, useStreaksStore } from '@/store'
+import { usePostsStore, useUserStore, useStreaksStore, notifyMentionedUsers } from '@/store'
 import { useBadgeChecker } from '@/hooks/useBadgeChecker'
 import { required, minLength, maxLength, validateField } from '@/lib/validation'
+import { extractMentions } from '@/lib/mentions'
 import type { PostVariant } from '@/types'
 
 const MAX_LENGTH = 500
@@ -103,7 +105,13 @@ export function ComposePage() {
     }
 
     // Create post
-    createPost(content.trim(), postType, author)
+    const post = createPost(content.trim(), postType, author)
+
+    // Extract and notify mentioned users
+    const mentions = extractMentions(content.trim())
+    if (mentions.length > 0 && post) {
+      notifyMentionedUsers(post.id, mentions, author.username, content.trim().slice(0, 100))
+    }
 
     // Check for badge unlocks after posting
     // Use setTimeout to ensure the post is created before checking
@@ -222,11 +230,11 @@ export function ComposePage() {
                 : undefined
             }
           >
-            <textarea
+            <MentionInput
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
-              onBlur={handleContentBlur}
+              onChange={handleContentChange}
               placeholder={postType === 'doom' ? "What's the doom?" : "What's your life today?"}
+              maxLength={MAX_LENGTH}
               className={`w-full min-h-[120px] bg-transparent text-[15px] text-white placeholder-[#777] outline-none resize-none ${
                 contentError ? 'border-l-2 border-[#ff3040] pl-2' : ''
               }`}

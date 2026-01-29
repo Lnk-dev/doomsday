@@ -78,3 +78,4 @@ export {
 export type { WithdrawalStatus, WithdrawalEntry } from './creator'
 export { useNotificationsStore, notifyMentionedUsers } from './notifications'
 export type { Notification, NotificationType } from './notifications'
+export { useUserProfileStore, useSyncUserProfile } from './userProfile'

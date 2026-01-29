@@ -6,7 +6,8 @@
  *
  * Features:
  * - Feed toggle (For You / Following)
- * - Sort options (Hot / New / Top)
+ * - Sort options (Personalized / Hot / New / Top)
+ * - Personalized ranking algorithm
  * - Infinite scroll of doom posts
  * - Real-time like interactions
  * - Loading skeleton states
@@ -17,15 +18,17 @@ import { ThreadPost } from '@/components/ui/ThreadPost'
 import { ShareModal } from '@/components/ui/ShareModal'
 import { FeedSkeleton } from '@/components/ui/Skeleton'
 import { QuoteRepostModal } from '@/components/ui/QuoteRepostModal'
-import { Flame, Clock, TrendingUp, UserPlus, Search, Trophy } from 'lucide-react'
-import { usePostsStore, useUserStore, useBookmarksStore, useLoadingStore } from '@/store'
+import { WhyAmISeeingThisCompact } from '@/components/ui/WhyAmISeeingThis'
+import { Flame, Clock, TrendingUp, UserPlus, Search, Trophy, Sparkles } from 'lucide-react'
+import { usePostsStore, useUserStore, useBookmarksStore, useLoadingStore, useUserProfileStore } from '@/store'
 import { formatRelativeTime } from '@/lib/utils'
-import { useState, useMemo, useEffect } from 'react'
+import { rankPosts, type ScoredPost } from '@/lib/ranking'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Post } from '@/types'
 
 type FeedTab = 'foryou' | 'following'
-type SortOption = 'hot' | 'new' | 'top'
+type SortOption = 'personalized' | 'hot' | 'new' | 'top'
 
 /** Calculate "hot" score (engagement / time decay) */
 const getHotScore = (post: Post): number => {
@@ -38,9 +41,10 @@ const getHotScore = (post: Post): number => {
 export function DoomScrollPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<FeedTab>('foryou')
-  const [sortBy, setSortBy] = useState<SortOption>('hot')
+  const [sortBy, setSortBy] = useState<SortOption>('personalized')
   const [sharePost, setSharePost] = useState<Post | null>(null)
   const [quotePost, setQuotePost] = useState<Post | null>(null)
+  const [scoredPosts, setScoredPosts] = useState<Map<string, ScoredPost>>(new Map())
 
   // Loading state
   const isLoading = useLoadingStore((state) => state.isLoading('posts'))
@@ -63,6 +67,11 @@ export function DoomScrollPage() {
   const author = useUserStore((state) => state.author)
   const following = useUserStore((state) => state.following)
   const isHidden = useUserStore((state) => state.isHidden)
+
+  // User profile store for personalization
+  const userProfile = useUserProfileStore((state) => state.profile)
+  const recordLike = useUserProfileStore((state) => state.recordLike)
+  const recordUnlike = useUserProfileStore((state) => state.recordUnlike)
 
   // Bookmarks store
   const isBookmarked = useBookmarksStore((state) => state.isBookmarked)
@@ -88,8 +97,22 @@ export function DoomScrollPage() {
   // Sort posts based on selected option
   const sortedPosts = useMemo(() => {
     const sorted = [...filteredPosts]
+
+    if (sortBy === 'personalized' && activeTab === 'foryou') {
+      // Use personalized ranking algorithm
+      const ranked = rankPosts(sorted, userProfile)
+
+      // Store scored posts for explanations
+      const newScoredPosts = new Map<string, ScoredPost>()
+      ranked.forEach((sp) => newScoredPosts.set(sp.post.id, sp))
+      setScoredPosts(newScoredPosts)
+
+      return ranked.map((sp) => sp.post)
+    }
+
     switch (sortBy) {
       case 'hot':
+      case 'personalized': // Fall back to hot for following tab
         return sorted.sort((a, b) => getHotScore(b) - getHotScore(a))
       case 'new':
         return sorted.sort((a, b) => b.createdAt - a.createdAt)
@@ -98,16 +121,18 @@ export function DoomScrollPage() {
       default:
         return sorted
     }
-  }, [filteredPosts, sortBy])
+  }, [filteredPosts, sortBy, activeTab, userProfile])
 
   /** Handle like button click */
-  const handleLike = (postId: string, isLiked: boolean) => {
+  const handleLike = useCallback((postId: string, isLiked: boolean, post: Post) => {
     if (isLiked) {
       unlikePost(postId, userId)
+      recordUnlike(postId, post.author.username)
     } else {
       likePost(postId, userId)
+      recordLike(postId, post.author.username, post.content)
     }
-  }
+  }, [likePost, unlikePost, userId, recordLike, recordUnlike])
 
   /** Handle repost button click */
   const handleRepost = (post: Post) => {
@@ -136,6 +161,7 @@ export function DoomScrollPage() {
   }
 
   const sortOptions: { id: SortOption; label: string; icon: typeof Flame }[] = [
+    { id: 'personalized', label: 'For You', icon: Sparkles },
     { id: 'hot', label: 'Hot', icon: Flame },
     { id: 'new', label: 'New', icon: Clock },
     { id: 'top', label: 'Top', icon: TrendingUp },
@@ -215,26 +241,36 @@ export function DoomScrollPage() {
         <FeedSkeleton count={5} />
       ) : (
         <div className="divide-y divide-[#333]">
-          {sortedPosts.map((post) => (
-            <ThreadPost
-              key={post.id}
-              postId={post.id}
-              author={post.author}
-              content={post.content}
-              timestamp={formatRelativeTime(post.createdAt)}
-              likes={post.likes}
-              replies={post.replies}
-              variant="doom"
-              isLiked={post.likedBy.includes(userId)}
-              onLike={() => handleLike(post.id, post.likedBy.includes(userId))}
-              onClick={() => navigate(`/post/${post.id}`)}
-              onShare={() => setSharePost(post)}
-              onRepost={() => handleRepost(post)}
-              onQuoteRepost={() => setQuotePost(post)}
-              isBookmarked={isBookmarked(post.id)}
-              onBookmark={() => handleBookmark(post.id)}
-            />
-          ))}
+          {sortedPosts.map((post) => {
+            const scoredPost = scoredPosts.get(post.id)
+            return (
+              <div key={post.id}>
+                <ThreadPost
+                  postId={post.id}
+                  author={post.author}
+                  content={post.content}
+                  timestamp={formatRelativeTime(post.createdAt)}
+                  likes={post.likes}
+                  replies={post.replies}
+                  variant="doom"
+                  isLiked={post.likedBy.includes(userId)}
+                  onLike={() => handleLike(post.id, post.likedBy.includes(userId), post)}
+                  onClick={() => navigate(`/post/${post.id}`)}
+                  onShare={() => setSharePost(post)}
+                  onRepost={() => handleRepost(post)}
+                  onQuoteRepost={() => setQuotePost(post)}
+                  isBookmarked={isBookmarked(post.id)}
+                  onBookmark={() => handleBookmark(post.id)}
+                />
+                {/* Show personalization explanation for "For You" tab */}
+                {sortBy === 'personalized' && activeTab === 'foryou' && scoredPost?.explanation && (
+                  <div className="px-4 pb-2 -mt-1">
+                    <WhyAmISeeingThisCompact explanation={scoredPost.explanation} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 

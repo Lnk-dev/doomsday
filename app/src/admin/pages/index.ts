@@ -6,3 +6,7 @@
 
 export { AdminLoginPage } from './AdminLoginPage'
 export { AdminDashboardPage } from './AdminDashboardPage'
+export { AdminUsersPage } from './AdminUsersPage'
+export { AdminModerationPage } from './AdminModerationPage'
+export { AdminAnalyticsPage } from './AdminAnalyticsPage'
+export { AdminEventsPage } from './AdminEventsPage'

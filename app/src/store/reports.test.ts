@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { useReportsStore, type ReportStatus } from './reports'
+import { useReportsStore } from './reports'
 import { ViolationType } from '@/lib/guidelines'
 
 describe('reports store', () => {

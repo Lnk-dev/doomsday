@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { useStreakStore, STREAK_MILESTONES } from './streak'
+import { useStreakStore } from './streak'
 
 describe('streak store', () => {
   beforeEach(() => {

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useOnboardingStore, type OnboardingStep } from './onboarding'
+import { useOnboardingStore } from './onboarding'
 
 describe('onboarding store', () => {
   beforeEach(() => {

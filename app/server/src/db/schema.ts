@@ -28,6 +28,25 @@ export const auditSeverityEnum = pgEnum('audit_severity', [
   'critical',       // Security/compliance critical
 ])
 
+// Fraud detection enums
+export const fraudAlertStatusEnum = pgEnum('fraud_alert_status', [
+  'pending',        // Awaiting review
+  'investigating',  // Under investigation
+  'confirmed',      // Confirmed fraud
+  'dismissed',      // False positive
+  'resolved',       // Action taken
+])
+
+export const fraudAlertTypeEnum = pgEnum('fraud_alert_type', [
+  'rapid_betting',       // Too many bets in short time
+  'large_bet',           // Unusually large bet amount
+  'pattern_anomaly',     // Unusual betting pattern
+  'coordinated_betting', // Multiple accounts betting same way
+  'bot_activity',        // Automated betting behavior
+  'account_takeover',    // Suspicious login/activity
+  'wash_trading',        // Self-trading patterns
+])
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   walletAddress: text('wallet_address').unique(),
@@ -181,9 +200,76 @@ export const auditLogs = pgTable('audit_logs', {
   index('audit_logs_severity_idx').on(t.severity),
 ])
 
+// Fraud alerts for suspicious activity
+export const fraudAlerts = pgTable('fraud_alerts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Target user
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  username: text('username').notNull(), // Denormalized
+  // Alert details
+  alertType: fraudAlertTypeEnum('alert_type').notNull(),
+  status: fraudAlertStatusEnum('status').notNull().default('pending'),
+  riskScore: integer('risk_score').notNull(), // 0-100
+  // Evidence
+  details: text('details').notNull(), // JSON with evidence data
+  relatedBetIds: text('related_bet_ids'), // JSON array of bet IDs
+  relatedEventIds: text('related_event_ids'), // JSON array of event IDs
+  // Context
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  // Resolution
+  reviewedBy: uuid('reviewed_by').references(() => adminUsers.id),
+  reviewedAt: timestamp('reviewed_at'),
+  resolution: text('resolution'), // Admin notes on resolution
+  actionTaken: text('action_taken'), // e.g., 'banned', 'warned', 'none'
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('fraud_alerts_user_idx').on(t.userId),
+  index('fraud_alerts_status_idx').on(t.status),
+  index('fraud_alerts_type_idx').on(t.alertType),
+  index('fraud_alerts_risk_idx').on(t.riskScore),
+  index('fraud_alerts_created_idx').on(t.createdAt),
+])
+
+// User risk profiles for ongoing monitoring
+export const userRiskProfiles = pgTable('user_risk_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  // Risk scores
+  overallRiskScore: integer('overall_risk_score').notNull().default(0), // 0-100
+  bettingRiskScore: integer('betting_risk_score').notNull().default(0),
+  velocityRiskScore: integer('velocity_risk_score').notNull().default(0),
+  patternRiskScore: integer('pattern_risk_score').notNull().default(0),
+  // Flags
+  isHighRisk: boolean('is_high_risk').default(false),
+  isWatchlisted: boolean('is_watchlisted').default(false),
+  isBanned: boolean('is_banned').default(false),
+  // Stats for pattern detection
+  totalBetsPlaced: integer('total_bets_placed').default(0),
+  totalBetVolume: integer('total_bet_volume').default(0),
+  avgBetSize: integer('avg_bet_size').default(0),
+  maxBetSize: integer('max_bet_size').default(0),
+  betsLast24h: integer('bets_last_24h').default(0),
+  betsLastHour: integer('bets_last_hour').default(0),
+  // Last activity
+  lastBetAt: timestamp('last_bet_at'),
+  lastAlertAt: timestamp('last_alert_at'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('user_risk_profiles_risk_idx').on(t.overallRiskScore),
+  index('user_risk_profiles_high_risk_idx').on(t.isHighRisk),
+  index('user_risk_profiles_watchlist_idx').on(t.isWatchlisted),
+])
+
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
 export type AdminUser = typeof adminUsers.$inferSelect
 export type AdminSession = typeof adminSessions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
+export type FraudAlert = typeof fraudAlerts.$inferSelect
+export type UserRiskProfile = typeof userRiskProfiles.$inferSelect

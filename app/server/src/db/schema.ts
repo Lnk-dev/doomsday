@@ -37,6 +37,59 @@ export const fraudAlertStatusEnum = pgEnum('fraud_alert_status', [
   'resolved',       // Action taken
 ])
 
+// Content moderation enums
+export const reportReasonEnum = pgEnum('report_reason', [
+  'spam',
+  'harassment',
+  'misinformation',
+  'hate_speech',
+  'violence',
+  'illegal_content',
+  'impersonation',
+  'self_harm',
+  'copyright',
+  'other',
+])
+
+export const reportStatusEnum = pgEnum('report_status', [
+  'pending',
+  'under_review',
+  'resolved_action_taken',
+  'resolved_no_action',
+  'dismissed',
+  'appealed',
+])
+
+export const moderationActionEnum = pgEnum('moderation_action', [
+  'warning',
+  'hide_post',
+  'delete_post',
+  'mute_user',
+  'suspend_user',
+  'ban_user',
+  'no_action',
+])
+
+export const userAccountStatusEnum = pgEnum('user_account_status', [
+  'active',
+  'warned',
+  'muted',
+  'suspended',
+  'banned',
+])
+
+export const restrictionTypeEnum = pgEnum('restriction_type', [
+  'mute',
+  'suspend',
+  'ban',
+])
+
+export const appealStatusEnum = pgEnum('appeal_status', [
+  'pending',
+  'approved',
+  'denied',
+])
+
 export const fraudAlertTypeEnum = pgEnum('fraud_alert_type', [
   'rapid_betting',       // Too many bets in short time
   'large_bet',           // Unusually large bet amount
@@ -265,6 +318,130 @@ export const userRiskProfiles = pgTable('user_risk_profiles', {
   index('user_risk_profiles_watchlist_idx').on(t.isWatchlisted),
 ])
 
+// Content reports from users
+export const reports = pgTable('reports', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // What is being reported
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'cascade' }),
+  commentId: uuid('comment_id').references(() => comments.id, { onDelete: 'cascade' }),
+  // Who
+  reportedUserId: uuid('reported_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reporterId: uuid('reporter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Report details
+  reason: reportReasonEnum('reason').notNull(),
+  details: text('details'), // Additional context from reporter
+  status: reportStatusEnum('status').notNull().default('pending'),
+  // Resolution
+  reviewedBy: uuid('reviewed_by').references(() => adminUsers.id),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewNotes: text('review_notes'),
+  actionTaken: moderationActionEnum('action_taken'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('reports_post_idx').on(t.postId),
+  index('reports_reported_user_idx').on(t.reportedUserId),
+  index('reports_reporter_idx').on(t.reporterId),
+  index('reports_status_idx').on(t.status),
+  index('reports_created_idx').on(t.createdAt),
+])
+
+// User warnings
+export const userWarnings = pgTable('user_warnings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reason: text('reason').notNull(),
+  issuedBy: uuid('issued_by').notNull().references(() => adminUsers.id),
+  reportId: uuid('report_id').references(() => reports.id),
+  // Acknowledgment
+  acknowledged: boolean('acknowledged').default(false),
+  acknowledgedAt: timestamp('acknowledged_at'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('user_warnings_user_idx').on(t.userId),
+  index('user_warnings_created_idx').on(t.createdAt),
+])
+
+// User restrictions (mutes, suspensions, bans)
+export const userRestrictions = pgTable('user_restrictions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: restrictionTypeEnum('type').notNull(),
+  reason: text('reason').notNull(),
+  issuedBy: uuid('issued_by').notNull().references(() => adminUsers.id),
+  reportId: uuid('report_id').references(() => reports.id),
+  // Duration
+  expiresAt: timestamp('expires_at'), // null = permanent
+  // Appeal
+  appealId: uuid('appeal_id'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at'),
+  revokedBy: uuid('revoked_by').references(() => adminUsers.id),
+}, (t) => [
+  index('user_restrictions_user_idx').on(t.userId),
+  index('user_restrictions_type_idx').on(t.type),
+  index('user_restrictions_expires_idx').on(t.expiresAt),
+])
+
+// Appeals against moderation actions
+export const appeals = pgTable('appeals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  restrictionId: uuid('restriction_id').references(() => userRestrictions.id),
+  reportId: uuid('report_id').references(() => reports.id),
+  // Appeal content
+  reason: text('reason').notNull(),
+  status: appealStatusEnum('status').notNull().default('pending'),
+  // Review
+  reviewedBy: uuid('reviewed_by').references(() => adminUsers.id),
+  reviewNotes: text('review_notes'),
+  reviewedAt: timestamp('reviewed_at'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('appeals_user_idx').on(t.userId),
+  index('appeals_status_idx').on(t.status),
+  index('appeals_created_idx').on(t.createdAt),
+])
+
+// Moderation log for audit trail
+export const moderationLogs = pgTable('moderation_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Action details
+  action: moderationActionEnum('action').notNull(),
+  moderatorId: uuid('moderator_id').notNull().references(() => adminUsers.id),
+  moderatorUsername: text('moderator_username').notNull(), // Denormalized
+  // Target
+  postId: uuid('post_id').references(() => posts.id, { onDelete: 'set null' }),
+  targetUserId: uuid('target_user_id').references(() => users.id, { onDelete: 'set null' }),
+  targetUsername: text('target_username'), // Denormalized
+  reportId: uuid('report_id').references(() => reports.id),
+  // Context
+  reason: text('reason').notNull(),
+  notes: text('notes'),
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('moderation_logs_moderator_idx').on(t.moderatorId),
+  index('moderation_logs_target_idx').on(t.targetUserId),
+  index('moderation_logs_action_idx').on(t.action),
+  index('moderation_logs_created_idx').on(t.createdAt),
+])
+
+// Hidden posts (soft delete for moderation)
+export const hiddenPosts = pgTable('hidden_posts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  postId: uuid('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }).unique(),
+  hiddenBy: uuid('hidden_by').notNull().references(() => adminUsers.id),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('hidden_posts_post_idx').on(t.postId),
+])
+
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
@@ -273,3 +450,8 @@ export type AdminSession = typeof adminSessions.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
 export type FraudAlert = typeof fraudAlerts.$inferSelect
 export type UserRiskProfile = typeof userRiskProfiles.$inferSelect
+export type Report = typeof reports.$inferSelect
+export type UserWarning = typeof userWarnings.$inferSelect
+export type UserRestriction = typeof userRestrictions.$inferSelect
+export type Appeal = typeof appeals.$inferSelect
+export type ModerationLog = typeof moderationLogs.$inferSelect

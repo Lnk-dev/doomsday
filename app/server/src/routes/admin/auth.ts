@@ -23,6 +23,7 @@ import {
   formatBackupCode,
 } from '../../lib/totp'
 import { authRateLimit, sensitiveRateLimit } from '../../middleware/rateLimit'
+import { audit } from '../../lib/auditLogger'
 
 const adminAuth = new Hono()
 
@@ -58,6 +59,10 @@ adminAuth.post('/login', authRateLimit, zValidator('json', loginSchema), async (
   })
 
   if (!admin) {
+    await audit.auth.loginFailed(username, {
+      ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+      reason: 'User not found',
+    })
     return c.json({ error: 'Invalid credentials' }, 401)
   }
 
@@ -80,6 +85,10 @@ adminAuth.post('/login', authRateLimit, zValidator('json', loginSchema), async (
     }
 
     await db.update(adminUsers).set(updates).where(eq(adminUsers.id, admin.id))
+    await audit.auth.loginFailed(username, {
+      ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
+      reason: newAttempts >= MAX_LOGIN_ATTEMPTS ? 'Account locked' : 'Invalid password',
+    })
     return c.json({ error: 'Invalid credentials' }, 401)
   }
 
@@ -241,6 +250,9 @@ adminAuth.post('/2fa/verify-setup', sensitiveRateLimit, zValidator('json', setup
     updatedAt: new Date(),
   }).where(eq(adminUsers.id, admin.id))
 
+  // Audit log 2FA enabled
+  await audit.auth.twoFactorEnabled(admin.id, admin.username)
+
   return c.json({
     success: true,
     backupCodes: backupCodes.map(formatBackupCode),
@@ -272,6 +284,9 @@ adminAuth.post('/2fa/disable', sensitiveRateLimit, zValidator('json', z.object({
     twoFactorBackupCodes: null,
     updatedAt: new Date(),
   }).where(eq(adminUsers.id, admin.id))
+
+  // Audit log 2FA disabled
+  await audit.auth.twoFactorDisabled(admin.id, admin.username)
 
   return c.json({ success: true })
 })
@@ -315,13 +330,15 @@ adminAuth.post('/2fa/regenerate-backup-codes', sensitiveRateLimit, zValidator('j
 async function createSession(c: Context, admin: typeof adminUsers.$inferSelect) {
   const token = generateToken({ adminId: admin.id })
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
+  const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip')
+  const userAgent = c.req.header('user-agent')
 
   // Store session
   await db.insert(adminSessions).values({
     adminId: admin.id,
     token,
-    ipAddress: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
-    userAgent: c.req.header('user-agent'),
+    ipAddress,
+    userAgent,
     expiresAt,
   })
 
@@ -329,6 +346,9 @@ async function createSession(c: Context, admin: typeof adminUsers.$inferSelect) 
   await db.update(adminUsers).set({
     lastLoginAt: new Date(),
   }).where(eq(adminUsers.id, admin.id))
+
+  // Audit log successful admin login
+  await audit.admin.login(admin.id, admin.username, { ip: ipAddress, userAgent })
 
   return c.json({
     token,

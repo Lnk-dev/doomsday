@@ -10,6 +10,24 @@ export const eventStatusEnum = pgEnum('event_status', ['active', 'resolved_doom'
 export const betOutcomeEnum = pgEnum('bet_outcome', ['doom', 'life'])
 export const adminRoleEnum = pgEnum('admin_role', ['super_admin', 'moderator', 'analyst', 'support'])
 
+// Audit log enums
+export const auditCategoryEnum = pgEnum('audit_category', [
+  'auth',           // Login, logout, 2FA
+  'user',           // Profile changes, verification
+  'betting',        // Bets placed, claimed, cancelled
+  'transfer',       // Token transfers, deposits, withdrawals
+  'event',          // Event creation, resolution, voiding
+  'moderation',     // Content moderation actions
+  'admin',          // Admin actions, role changes
+  'system',         // System events, errors
+])
+
+export const auditSeverityEnum = pgEnum('audit_severity', [
+  'info',           // Normal operations
+  'warning',        // Potential issues
+  'critical',       // Security/compliance critical
+])
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   walletAddress: text('wallet_address').unique(),
@@ -127,8 +145,45 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
   comments: many(comments), likes: many(likes),
 }))
 
+// Audit logs for compliance (immutable)
+export const auditLogs = pgTable('audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  // Who
+  actorId: uuid('actor_id'), // User or admin who performed action (null for system)
+  actorType: text('actor_type').notNull(), // 'user', 'admin', 'system'
+  actorUsername: text('actor_username'), // Denormalized for immutability
+  // What
+  action: text('action').notNull(), // e.g., 'bet.placed', 'user.profile_updated'
+  category: auditCategoryEnum('category').notNull(),
+  severity: auditSeverityEnum('severity').notNull().default('info'),
+  // Target resource
+  resourceType: text('resource_type'), // e.g., 'bet', 'user', 'event'
+  resourceId: uuid('resource_id'),
+  // Where
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  requestId: text('request_id'), // For request tracing
+  // Details (what changed)
+  details: text('details'), // JSON with before/after, amounts, etc.
+  // Why (optional reason/notes)
+  reason: text('reason'),
+  // When
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+  // Integrity verification
+  previousHash: text('previous_hash'), // Hash of previous log entry for chain
+  integrityHash: text('integrity_hash').notNull(), // SHA-256 hash of this entry
+}, (t) => [
+  index('audit_logs_actor_idx').on(t.actorId),
+  index('audit_logs_action_idx').on(t.action),
+  index('audit_logs_category_idx').on(t.category),
+  index('audit_logs_resource_idx').on(t.resourceType, t.resourceId),
+  index('audit_logs_timestamp_idx').on(t.timestamp),
+  index('audit_logs_severity_idx').on(t.severity),
+])
+
 export type User = typeof users.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Event = typeof events.$inferSelect
 export type AdminUser = typeof adminUsers.$inferSelect
 export type AdminSession = typeof adminSessions.$inferSelect
+export type AuditLog = typeof auditLogs.$inferSelect

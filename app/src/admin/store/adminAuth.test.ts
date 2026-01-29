@@ -74,7 +74,7 @@ describe('adminAuth store', () => {
 
       const result = await useAdminAuthStore.getState().login('testadmin', 'password')
 
-      expect(result).toBe(true)
+      expect(result).toBe('success')
 
       const state = useAdminAuthStore.getState()
       expect(state.admin).toEqual(mockAdmin)
@@ -101,7 +101,7 @@ describe('adminAuth store', () => {
 
       const result = await useAdminAuthStore.getState().login('testadmin', 'wrongpassword')
 
-      expect(result).toBe(false)
+      expect(result).toBe('error')
 
       const state = useAdminAuthStore.getState()
       expect(state.admin).toBeNull()

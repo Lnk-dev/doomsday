@@ -228,3 +228,55 @@ export interface TokenTransaction {
   /** When the transaction occurred */
   createdAt: Timestamp
 }
+
+/**
+ * Message delivery status
+ */
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
+
+/**
+ * Participant info in a conversation
+ */
+export interface ConversationParticipant {
+  id: ID
+  username: string
+  displayName: string | null
+  avatarUrl: string | null
+  verified: boolean
+}
+
+/**
+ * Individual message in a conversation
+ */
+export interface Message {
+  id: ID
+  senderId: ID
+  sender?: ConversationParticipant
+  content: string
+  status: MessageStatus
+  replyTo?: {
+    id: ID
+    content: string
+    senderId: ID
+  } | null
+  isDeleted: boolean
+  createdAt: Timestamp
+}
+
+/**
+ * Conversation between two users
+ */
+export interface Conversation {
+  id: ID
+  otherUser: ConversationParticipant
+  lastMessage: {
+    content: string
+    senderId: ID
+    createdAt: Timestamp
+  } | null
+  unreadCount: number
+  isMuted: boolean
+  isArchived: boolean
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}

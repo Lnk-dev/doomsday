@@ -241,10 +241,11 @@ adminVerification.post(
     }
 
     // Log the action
+    const userInfo = request.user as { id: string; username: string } | null
     await audit.admin.verificationReview(admin.id, {
       requestId,
       userId: request.userId,
-      username: request.user?.username,
+      username: userInfo?.username,
       approved: body.approved,
       rejectionReason: body.rejectionReason,
     })

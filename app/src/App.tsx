@@ -39,6 +39,9 @@ const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage').then(m =>
 const ActivityPage = lazy(() => import('@/pages/ActivityPage').then(m => ({ default: m.ActivityPage })))
 const EmbedPostPage = lazy(() => import('@/pages/EmbedPostPage').then(m => ({ default: m.EmbedPostPage })))
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then(m => ({ default: m.AnalyticsPage })))
+const InboxPage = lazy(() => import('@/pages/InboxPage').then(m => ({ default: m.InboxPage })))
+const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
+const NewMessagePage = lazy(() => import('@/pages/NewMessagePage').then(m => ({ default: m.NewMessagePage })))
 
 // Admin routes (separate bundle)
 const AdminRoutes = lazy(() => import('@/admin/AdminRoutes'))
@@ -223,6 +226,21 @@ function App() {
           <Route path="/analytics" element={
             <Suspense fallback={<PageLoader />}>
               <AnalyticsPage />
+            </Suspense>
+          } />
+          <Route path="/messages" element={
+            <Suspense fallback={<PageLoader />}>
+              <InboxPage />
+            </Suspense>
+          } />
+          <Route path="/messages/new" element={
+            <Suspense fallback={<PageLoader />}>
+              <NewMessagePage />
+            </Suspense>
+          } />
+          <Route path="/messages/:conversationId" element={
+            <Suspense fallback={<PageLoader />}>
+              <ConversationPage />
             </Suspense>
           } />
           <Route path="*" element={

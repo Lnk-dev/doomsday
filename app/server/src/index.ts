@@ -29,6 +29,7 @@ import pushRouter from './routes/push'
 import geoRouter from './routes/geo'
 import { verificationRouter } from './routes/verification'
 import { adminVerificationRouter } from './routes/admin/verification'
+import { messagesRouter } from './routes/messages'
 import { geoDetection } from './middleware/geoBlock'
 import { initializeWorkers, scheduleRecurringJobs, closeAllQueues } from './lib/jobs'
 
@@ -61,6 +62,7 @@ app.route('/push', pushRouter)
 app.route('/geo', geoRouter)
 app.route('/verification', verificationRouter)
 app.route('/admin/verification', adminVerificationRouter)
+app.route('/messages', messagesRouter)
 
 app.get('/', (c) => c.json({ name: 'Doomsday API', version: '1.0.0' }))
 

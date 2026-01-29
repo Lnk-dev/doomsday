@@ -7,6 +7,8 @@ import { logger } from './lib/logger'
 import { initSentry, captureError } from './lib/sentry'
 import { closeDatabase } from './db'
 import { requestLogger } from './middleware/logger'
+import { requestId } from './middleware/requestId'
+import { apiSecurityHeaders } from './middleware/security'
 import { initializeWebSocket, getConnectionStats } from './lib/websocket'
 import authRouter from './routes/auth'
 import postsRouter from './routes/posts'
@@ -21,6 +23,8 @@ initSentry()
 
 const app = new Hono()
 
+app.use('*', requestId)
+app.use('*', apiSecurityHeaders)
 app.use('*', cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))
 app.use('*', requestLogger)
 

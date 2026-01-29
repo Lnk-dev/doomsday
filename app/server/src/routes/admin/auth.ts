@@ -21,6 +21,7 @@ import {
   hashBackupCode,
   verifyBackupCode,
   formatBackupCode,
+  encryptSecret,
 } from '../../lib/totp'
 import { authRateLimit, sensitiveRateLimit } from '../../middleware/rateLimit'
 import { audit } from '../../lib/auditLogger'
@@ -31,6 +32,10 @@ const adminAuth = new Hono()
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000 // 24 hours
 const MAX_LOGIN_ATTEMPTS = 5
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+
+// Dummy hash for constant-time comparison when user doesn't exist (prevents timing attacks)
+// This is a valid bcrypt hash that will never match any password
+const DUMMY_HASH = '$2b$10$K.0HwpsoPDGaB/atFBmmXOGTw4ceeg33.WrxJx/FeC9.gOMialU5W'
 
 // Validation schemas
 const loginSchema = z.object({
@@ -58,6 +63,12 @@ adminAuth.post('/login', authRateLimit, zValidator('json', loginSchema), async (
     where: eq(adminUsers.username, username),
   })
 
+  // SECURITY: Always perform password comparison to prevent timing attacks
+  // Even if the user doesn't exist, we compare against a dummy hash
+  const hashToCompare = admin?.passwordHash || DUMMY_HASH
+  const validPassword = await bcrypt.compare(password, hashToCompare)
+
+  // Now check if user exists (after constant-time password check)
   if (!admin) {
     await audit.auth.loginFailed(username, {
       ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip'),
@@ -73,8 +84,7 @@ adminAuth.post('/login', authRateLimit, zValidator('json', loginSchema), async (
     return c.json({ error: `Account locked. Try again in ${remainingMin} minutes.` }, 423)
   }
 
-  // Verify password
-  const validPassword = await bcrypt.compare(password, admin.passwordHash)
+  // Check password result (comparison was done above)
   if (!validPassword) {
     // Increment failed attempts
     const newAttempts = (admin.failedLoginAttempts || 0) + 1
@@ -242,10 +252,13 @@ adminAuth.post('/2fa/verify-setup', sensitiveRateLimit, zValidator('json', setup
   const backupCodes = generateBackupCodes()
   const hashedBackupCodes = backupCodes.map(hashBackupCode)
 
+  // Encrypt the secret before storing
+  const encryptedSecret = encryptSecret(secret)
+
   // Enable 2FA
   await db.update(adminUsers).set({
     twoFactorEnabled: true,
-    twoFactorSecret: secret,
+    twoFactorSecret: encryptedSecret,
     twoFactorBackupCodes: JSON.stringify(hashedBackupCodes),
     updatedAt: new Date(),
   }).where(eq(adminUsers.id, admin.id))

@@ -10,8 +10,6 @@ import {
   PublicKey,
   Transaction,
   TransactionInstruction,
-  SystemProgram,
-  SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js'
 import { BN } from '@coral-xyz/anchor'
 import {

@@ -19,7 +19,8 @@ interface SwapState {
 }
 
 export function SwapPage() {
-  const { connected, doomBalance, lifeBalance } = useWalletStore()
+  const { primaryWalletAddress, doomBalance, lifeBalance } = useWalletStore()
+  const connected = primaryWalletAddress !== null
   const config = getNetworkConfig()
 
   const [state, setState] = useState<SwapState>({
@@ -33,8 +34,8 @@ export function SwapPage() {
   })
 
   const toToken = state.fromToken === 'DOOM' ? 'LIFE' : 'DOOM'
-  const fromBalance = state.fromToken === 'DOOM' ? doomBalance : lifeBalance
-  const toBalance = state.fromToken === 'DOOM' ? lifeBalance : doomBalance
+  const fromBalance = (state.fromToken === 'DOOM' ? doomBalance : lifeBalance) ?? 0
+  const toBalance = (state.fromToken === 'DOOM' ? lifeBalance : doomBalance) ?? 0
 
   // Mock pool data (replace with real data from chain)
   const [poolData] = useState({

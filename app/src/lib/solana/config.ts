@@ -32,17 +32,17 @@ const DEVNET_CONFIG: NetworkConfig = {
   explorerUrl: 'https://explorer.solana.com',
   tokens: {
     doom: {
-      mint: import.meta.env.VITE_DOOM_TOKEN_MINT || 'DooMDevMintAddressPlaceholder111111111111111',
+      mint: import.meta.env.VITE_DOOM_TOKEN_MINT || '9Dc8sELJerfzPfk9DMP5vahLFxvr6rzn7PB8E6EK4Ah5',
       decimals: 9,
     },
     life: {
-      mint: import.meta.env.VITE_LIFE_TOKEN_MINT || 'LiFEDevMintAddressPlaceholder111111111111111',
+      mint: import.meta.env.VITE_LIFE_TOKEN_MINT || 'D2DDKv5JXjL1APVBP1ySY3PMUFEjL7R8NRz9r9a4JCvE',
       decimals: 9,
     },
   },
   programs: {
-    predictionMarket: import.meta.env.VITE_PREDICTION_MARKET_PROGRAM || 'PredDevProgramAddressPlaceholder11111111111',
-    tokenVault: import.meta.env.VITE_TOKEN_VAULT_PROGRAM || 'VaultDevProgramAddressPlaceholder1111111111',
+    predictionMarket: import.meta.env.VITE_PREDICTION_MARKET_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
+    tokenVault: import.meta.env.VITE_TOKEN_VAULT_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
   },
 }
 

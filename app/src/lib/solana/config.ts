@@ -44,7 +44,7 @@ const DEVNET_CONFIG: NetworkConfig = {
   programs: {
     predictionMarket: import.meta.env.VITE_PREDICTION_MARKET_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
     tokenVault: import.meta.env.VITE_TOKEN_VAULT_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
-    amm: import.meta.env.VITE_AMM_PROGRAM || 'ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe',
+    amm: import.meta.env.VITE_AMM_PROGRAM || '9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK',
   },
 }
 

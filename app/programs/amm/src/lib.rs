@@ -9,7 +9,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, MintTo, Burn};
 
-declare_id!("ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe");
+declare_id!("9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK");
 
 /// Fee in basis points (30 = 0.3%)
 const SWAP_FEE_BPS: u64 = 30;

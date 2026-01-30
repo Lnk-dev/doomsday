@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "prediction-market"
+    "prediction-market",
+    "amm"
 ]
 resolver = "2"
 

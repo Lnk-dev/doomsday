@@ -44,6 +44,7 @@ const InboxPage = lazy(() => import('@/pages/InboxPage').then(m => ({ default: m
 const ConversationPage = lazy(() => import('@/pages/ConversationPage').then(m => ({ default: m.ConversationPage })))
 const NewMessagePage = lazy(() => import('@/pages/NewMessagePage').then(m => ({ default: m.NewMessagePage })))
 const EmailVerificationPage = lazy(() => import('@/pages/EmailVerificationPage').then(m => ({ default: m.EmailVerificationPage })))
+const SwapPage = lazy(() => import('@/pages/SwapPage').then(m => ({ default: m.SwapPage })))
 
 // Admin routes (separate bundle)
 const AdminRoutes = lazy(() => import('@/admin/AdminRoutes'))
@@ -254,6 +255,11 @@ function App() {
           <Route path="/messages/:conversationId" element={
             <Suspense fallback={<PageLoader />}>
               <ConversationPage />
+            </Suspense>
+          } />
+          <Route path="/swap" element={
+            <Suspense fallback={<PageLoader />}>
+              <SwapPage />
             </Suspense>
           } />
           <Route path="*" element={

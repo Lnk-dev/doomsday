@@ -62,8 +62,6 @@ export interface PredictionEvent {
   totalBettors: BN
   createdAt: BN
   resolvedAt: BN | null
-  doomVaultBump: number
-  lifeVaultBump: number
   bump: number
 }
 
@@ -444,10 +442,11 @@ export async function fetchAllEvents(
 ): Promise<PredictionEvent[]> {
   const programId = getPredictionMarketProgramId()
 
-  // Get all program accounts with event discriminator
+  // Get all program accounts with event account size
+  // PredictionEvent accounts are 753 bytes based on actual on-chain data
   const accounts = await connection.getProgramAccounts(programId, {
     filters: [
-      { dataSize: 800 }, // Approximate event account size
+      { dataSize: 753 }, // Actual event account size
     ],
   })
 
@@ -552,15 +551,16 @@ function parseEvent(data: Buffer): PredictionEvent {
   const creator = new PublicKey(data.slice(offset, offset + 32))
   offset += 32
 
+  // Anchor strings: 4-byte length prefix + variable content
   const titleLen = data.readUInt32LE(offset)
   offset += 4
-  const title = data.slice(offset, offset + titleLen).toString()
-  offset += 128 // Fixed size allocation
+  const title = data.slice(offset, offset + titleLen).toString('utf-8')
+  offset += titleLen // Variable length
 
   const descLen = data.readUInt32LE(offset)
   offset += 4
-  const description = data.slice(offset, offset + descLen).toString()
-  offset += 512 // Fixed size allocation
+  const description = data.slice(offset, offset + descLen).toString('utf-8')
+  offset += descLen // Variable length
 
   const deadline = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
@@ -571,10 +571,11 @@ function parseEvent(data: Buffer): PredictionEvent {
   const status = data[offset] as EventStatus
   offset += 1
 
+  // Option<Outcome>: 1 byte discriminator + optional 1 byte value
   const hasOutcome = data[offset] === 1
   offset += 1
   const outcome = hasOutcome ? (data[offset] as Outcome) : null
-  offset += 1
+  if (hasOutcome) offset += 1
 
   const doomPool = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
@@ -582,22 +583,18 @@ function parseEvent(data: Buffer): PredictionEvent {
   const lifePool = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
 
-  const totalBettors = new BN(data.slice(offset, offset + 8), 'le')
-  offset += 8
+  // total_bettors is u32 (4 bytes), not u64
+  const totalBettors = new BN(data.readUInt32LE(offset))
+  offset += 4
 
   const createdAt = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
 
+  // Option<i64>: 1 byte discriminator + optional 8 bytes
   const hasResolvedAt = data[offset] === 1
   offset += 1
   const resolvedAt = hasResolvedAt ? new BN(data.slice(offset, offset + 8), 'le') : null
-  offset += 8
-
-  const doomVaultBump = data[offset]
-  offset += 1
-
-  const lifeVaultBump = data[offset]
-  offset += 1
+  if (hasResolvedAt) offset += 8
 
   const bump = data[offset]
 
@@ -615,8 +612,6 @@ function parseEvent(data: Buffer): PredictionEvent {
     totalBettors,
     createdAt,
     resolvedAt,
-    doomVaultBump,
-    lifeVaultBump,
     bump,
   }
 }

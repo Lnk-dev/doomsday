@@ -21,6 +21,7 @@ export interface NetworkConfig {
   programs: {
     predictionMarket: string
     tokenVault: string
+    amm: string
   }
 }
 
@@ -43,6 +44,7 @@ const DEVNET_CONFIG: NetworkConfig = {
   programs: {
     predictionMarket: import.meta.env.VITE_PREDICTION_MARKET_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
     tokenVault: import.meta.env.VITE_TOKEN_VAULT_PROGRAM || 'BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc',
+    amm: import.meta.env.VITE_AMM_PROGRAM || 'ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe',
   },
 }
 
@@ -65,6 +67,7 @@ const MAINNET_CONFIG: NetworkConfig = {
   programs: {
     predictionMarket: import.meta.env.VITE_PREDICTION_MARKET_PROGRAM || '',
     tokenVault: import.meta.env.VITE_TOKEN_VAULT_PROGRAM || '',
+    amm: import.meta.env.VITE_AMM_PROGRAM || '',
   },
 }
 
@@ -81,6 +84,7 @@ const LOCALNET_CONFIG: NetworkConfig = {
   programs: {
     predictionMarket: '',
     tokenVault: '',
+    amm: '',
   },
 }
 
@@ -154,7 +158,7 @@ export function getTokenDecimals(token: 'doom' | 'life'): number {
 /**
  * Get program ID
  */
-export function getProgramId(program: 'predictionMarket' | 'tokenVault'): string {
+export function getProgramId(program: 'predictionMarket' | 'tokenVault' | 'amm'): string {
   return getNetworkConfig().programs[program]
 }
 
@@ -173,6 +177,7 @@ export function validateMainnetConfig(): { valid: boolean; missing: string[] } {
   if (!config.tokens.life.mint) missing.push('LIFE token mint')
   if (!config.programs.predictionMarket) missing.push('Prediction market program')
   if (!config.programs.tokenVault) missing.push('Token vault program')
+  if (!config.programs.amm) missing.push('AMM program')
 
   return { valid: missing.length === 0, missing }
 }

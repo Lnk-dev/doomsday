@@ -3,7 +3,7 @@
  * Issue #101: Tests for transaction tracking and history
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useTransactionStore } from './transactions'
 
 describe('transactions store', () => {

@@ -3,8 +3,7 @@
  * Issue #34, #35: Tests for token integration utilities
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PublicKey, Connection } from '@solana/web3.js'
+import { describe, it, expect, vi } from 'vitest'
 import {
   formatTokenAmount,
   parseTokenAmount,

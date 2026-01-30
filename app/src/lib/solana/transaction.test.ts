@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Connection, PublicKey, Transaction, Keypair } from '@solana/web3.js'
+import { Connection, Transaction, Keypair } from '@solana/web3.js'
 import type { WalletContextState } from '@solana/wallet-adapter-react'
 import {
   sendTransactionWithRetry,

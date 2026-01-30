@@ -10,9 +10,9 @@ This document describes the Doomsday platform's Solana devnet deployment, includ
 - **Explorer:** [View on Solana Explorer](https://explorer.solana.com/address/BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc?cluster=devnet)
 
 ### AMM (Liquidity Pool)
-- **Program ID:** `9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK`
+- **Program ID:** `7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF`
 - **Status:** ⚠️ Deployed, pool initialization pending
-- **Explorer:** [View on Solana Explorer](https://explorer.solana.com/address/9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK?cluster=devnet)
+- **Explorer:** [View on Solana Explorer](https://explorer.solana.com/address/7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF?cluster=devnet)
 
 ## Platform Configuration
 
@@ -229,7 +229,7 @@ VITE_LIFE_TOKEN_MINT=D2DDKv5JXjL1APVBP1ySY3PMUFEjL7R8NRz9r9a4JCvE
 
 # Program IDs (devnet)
 VITE_PREDICTION_MARKET_PROGRAM=BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc
-VITE_AMM_PROGRAM=9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK
+VITE_AMM_PROGRAM=7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF
 ```
 
 ## Related Documentation

@@ -14,14 +14,10 @@ import {
   Connection,
   PublicKey,
   Keypair,
-  Transaction,
-  TransactionInstruction,
-  sendAndConfirmTransaction,
 } from '@solana/web3.js'
 import * as fs from 'fs'
 import * as path from 'path'
 import BN from 'bn.js'
-import { createHash } from 'crypto'
 
 const PROGRAM_ID = new PublicKey('BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc')
 const RPC_URL = 'https://api.devnet.solana.com'

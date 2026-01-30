@@ -4,11 +4,11 @@ skip-lint = false
 
 [programs.localnet]
 prediction_market = "BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc"
-amm = "ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe"
+amm = "7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF"
 
 [programs.devnet]
 prediction_market = "BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc"
-amm = "ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe"
+amm = "7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF"
 
 [registry]
 url = "https://api.apr.dev"

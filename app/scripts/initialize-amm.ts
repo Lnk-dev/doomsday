@@ -1,6 +1,10 @@
 /**
  * Initialize AMM Pool Script
  * Sets up the DOOM/LIFE liquidity pool on devnet
+ *
+ * Two-step initialization to avoid stack overflow:
+ * Step 1: initialize_pool - Creates pool account
+ * Step 2: initialize_pool_vaults - Creates LP mint and token vaults
  */
 
 import {
@@ -18,7 +22,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { createHash } from 'crypto'
 
-const AMM_PROGRAM_ID = new PublicKey('9k1WNiR3e7yDkothG5LiAhm1ocJbRYy1Er3coNCYwkHK')
+const AMM_PROGRAM_ID = new PublicKey('7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF')
 const RPC_URL = 'https://api.devnet.solana.com'
 
 // Token mints from config
@@ -54,7 +58,7 @@ function findPoolLifePDA(): [PublicKey, number] {
 }
 
 async function main() {
-  console.log('Initializing AMM Liquidity Pool...')
+  console.log('Initializing AMM Liquidity Pool (Two-Step Process)...')
   console.log('Program ID:', AMM_PROGRAM_ID.toString())
   console.log('DOOM Mint:', DOOM_MINT.toString())
   console.log('LIFE Mint:', LIFE_MINT.toString())
@@ -80,24 +84,86 @@ async function main() {
   // Connect to devnet
   const connection = new Connection(RPC_URL, 'confirmed')
 
-  // Skip check to avoid rate limit - will fail if already exists
-  // const existingPool = await connection.getAccountInfo(pool)
-  // if (existingPool) {
-  //   console.log('\nPool already initialized!')
-  //   return
-  // }
+  // Check current balance
+  const balance = await connection.getBalance(authority.publicKey)
+  console.log('\nWallet balance:', balance / 1e9, 'SOL')
 
-  // Build instruction data
-  // initialize_pool discriminator (sha256("global:initialize_pool")[0..8])
-  const discriminator = createHash('sha256')
-    .update('global:initialize_pool')
+  // Check if pool already exists
+  const existingPool = await connection.getAccountInfo(pool)
+
+  if (existingPool) {
+    console.log('\nPool account already exists!')
+
+    // Check if it's initialized by reading the data
+    // Skip 8 bytes discriminator, then pubkeys and u64s, check initialized flag
+    // Layout: 8 + 32 + 32 + 8 + 8 + 32 + 8 + 8 + 8 + 32 + 1 + 1 = 178 bytes
+    const data = existingPool.data
+    const initialized = data[177] === 1
+
+    if (initialized) {
+      console.log('Pool is fully initialized!')
+      return
+    }
+
+    console.log('Pool exists but vaults not initialized. Running step 2...')
+  } else {
+    // ===== STEP 1: Initialize Pool Account =====
+    console.log('\n--- Step 1: Initialize Pool Account ---')
+
+    const step1Discriminator = createHash('sha256')
+      .update('global:initialize_pool')
+      .digest()
+      .slice(0, 8)
+
+    console.log('Discriminator:', Array.from(step1Discriminator).join(', '))
+
+    const step1Instruction = new TransactionInstruction({
+      keys: [
+        { pubkey: pool, isSigner: false, isWritable: true },
+        { pubkey: DOOM_MINT, isSigner: false, isWritable: false },
+        { pubkey: LIFE_MINT, isSigner: false, isWritable: false },
+        { pubkey: authority.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: AMM_PROGRAM_ID,
+      data: step1Discriminator,
+    })
+
+    const step1Tx = new Transaction().add(step1Instruction)
+
+    console.log('Sending step 1 transaction...')
+
+    try {
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        step1Tx,
+        [authority],
+        { commitment: 'confirmed' }
+      )
+
+      console.log('Step 1 complete!')
+      console.log('Signature:', signature)
+      console.log('Explorer:', `https://explorer.solana.com/tx/${signature}?cluster=devnet`)
+    } catch (error) {
+      console.error('Step 1 failed:', error)
+      throw error
+    }
+
+    // Wait a moment for confirmation
+    await new Promise(resolve => setTimeout(resolve, 2000))
+  }
+
+  // ===== STEP 2: Initialize Pool Vaults =====
+  console.log('\n--- Step 2: Initialize Pool Vaults ---')
+
+  const step2Discriminator = createHash('sha256')
+    .update('global:initialize_pool_vaults')
     .digest()
     .slice(0, 8)
 
-  console.log('\nDiscriminator:', Array.from(discriminator).join(', '))
+  console.log('Discriminator:', Array.from(step2Discriminator).join(', '))
 
-  // Build instruction
-  const instruction = new TransactionInstruction({
+  const step2Instruction = new TransactionInstruction({
     keys: [
       { pubkey: pool, isSigner: false, isWritable: true },
       { pubkey: DOOM_MINT, isSigner: false, isWritable: false },
@@ -111,29 +177,34 @@ async function main() {
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
     ],
     programId: AMM_PROGRAM_ID,
-    data: discriminator,
+    data: step2Discriminator,
   })
 
-  // Build and send transaction
-  const transaction = new Transaction().add(instruction)
+  const step2Tx = new Transaction().add(step2Instruction)
 
-  console.log('\nSending transaction...')
+  console.log('Sending step 2 transaction...')
 
   try {
     const signature = await sendAndConfirmTransaction(
       connection,
-      transaction,
+      step2Tx,
       [authority],
       { commitment: 'confirmed' }
     )
 
-    console.log('Pool initialized successfully!')
+    console.log('Step 2 complete!')
     console.log('Signature:', signature)
     console.log('Explorer:', `https://explorer.solana.com/tx/${signature}?cluster=devnet`)
   } catch (error) {
-    console.error('Failed to initialize pool:', error)
+    console.error('Step 2 failed:', error)
     throw error
   }
+
+  console.log('\n=== AMM Pool Fully Initialized ===')
+  console.log('Pool:', pool.toString())
+  console.log('LP Mint:', lpMint.toString())
+  console.log('DOOM Vault:', poolDoom.toString())
+  console.log('LIFE Vault:', poolLife.toString())
 }
 
 main().catch(console.error)

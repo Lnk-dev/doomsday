@@ -141,7 +141,6 @@ async function main() {
     // Fetch updated event to show new pool amounts
     const updatedEvent = await connection.getAccountInfo(event)
     if (updatedEvent) {
-      const eventData = updatedEvent.data.slice(8)
       // Skip to pools (after variable strings - approximate)
       // This is a simplified read, real parsing would be variable-length aware
       console.log('\nNote: Check fetch-events.ts for updated pool values')

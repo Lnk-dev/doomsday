@@ -12,11 +12,12 @@
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { EventListSkeleton } from '@/components/ui/Skeleton'
-import { Search, Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Clock, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
 import { useEventsStore, useLoadingStore } from '@/store'
 import { formatCountdown, formatNumber } from '@/lib/utils'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useOnChainEvents } from '@/hooks/useOnChainEvents'
 import type { EventCategory } from '@/types'
 
 const categories: (EventCategory | 'all')[] = [
@@ -45,14 +46,15 @@ export function EventsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<EventCategory | 'all'>('all')
 
-  // Loading state
-  const isLoading = useLoadingStore((state) => state.isLoading('events'))
-  const simulateLoading = useLoadingStore((state) => state.simulateLoading)
+  // On-chain sync
+  const { sync, isLoading: isSyncing, lastSyncAt } = useOnChainEvents({
+    autoSync: true,
+    refreshInterval: 60000, // Refresh every 60 seconds
+  })
 
-  // Simulate initial loading on mount
-  useEffect(() => {
-    simulateLoading('events', 1000)
-  }, [simulateLoading])
+  // Loading state (combine local and chain loading)
+  const isLoadingLocal = useLoadingStore((state) => state.isLoading('events'))
+  const isLoading = isLoadingLocal || isSyncing
 
   // Get raw events from store (stable reference)
   const eventsRecord = useEventsStore((state) => state.events)
@@ -107,11 +109,28 @@ export function EventsPage() {
       </div>
 
       {/* Section header */}
-      <div className="px-4 pt-4 pb-2">
-        <h2 className="text-[15px] font-bold text-white">
-          {activeCategory === 'all' ? 'All Events' : categoryLabels[activeCategory]}
-        </h2>
-        <p className="text-[13px] text-[#777]">{filteredEvents.length} predictions</p>
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-[15px] font-bold text-white">
+            {activeCategory === 'all' ? 'All Events' : categoryLabels[activeCategory]}
+          </h2>
+          <p className="text-[13px] text-[#777]">
+            {filteredEvents.length} predictions
+            {lastSyncAt && (
+              <span className="ml-2 text-[11px]">
+                • Synced {new Date(lastSyncAt).toLocaleTimeString()}
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={sync}
+          disabled={isSyncing}
+          className="p-2 rounded-lg hover:bg-[#1a1a1a] text-[#777] hover:text-white disabled:opacity-50"
+          title="Refresh from blockchain"
+        >
+          <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+        </button>
       </div>
 
       {/* Events list - show skeleton while loading */}

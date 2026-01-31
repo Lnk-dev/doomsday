@@ -8,6 +8,13 @@
       "when": 1769719505255,
       "tag": "0000_busy_power_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769868423803,
+      "tag": "0001_fresh_cerise",
+      "breakpoints": true
     }
   ]
 }

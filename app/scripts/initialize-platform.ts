@@ -18,6 +18,10 @@ import * as path from 'path'
 const PROGRAM_ID = new PublicKey('BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc')
 const RPC_URL = 'https://api.devnet.solana.com'
 
+// Token mints (from devnet deployment)
+const DOOM_MINT = new PublicKey('9Dc8sELJerfzPfk9DMP5vahLFxvr6rzn7PB8E6EK4Ah5')
+const LIFE_MINT = new PublicKey('D2DDKv5JXjL1APVBP1ySY3PMUFEjL7R8NRz9r9a4JCvE')
+
 // Fee in basis points (200 = 2%)
 const FEE_BASIS_POINTS = 200
 
@@ -64,9 +68,17 @@ async function main() {
   const data = Buffer.concat([discriminator, feeBuffer])
 
   // Build instruction
+  // Account order matches InitializePlatform struct:
+  // 1. platform_config (PDA, writable)
+  // 2. doom_mint (read-only)
+  // 3. life_mint (read-only)
+  // 4. authority (signer, writable)
+  // 5. system_program (read-only)
   const instruction = new TransactionInstruction({
     keys: [
       { pubkey: platformConfig, isSigner: false, isWritable: true },
+      { pubkey: DOOM_MINT, isSigner: false, isWritable: false },
+      { pubkey: LIFE_MINT, isSigner: false, isWritable: false },
       { pubkey: authority.publicKey, isSigner: true, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],

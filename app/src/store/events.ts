@@ -28,7 +28,6 @@ import {
   type PredictionEvent as OnChainEvent,
   calculateEstimatedPayout,
 } from '@/lib/solana/programs/predictionMarket'
-import { getNetworkConfig } from '@/lib/solana/config'
 
 /** Generate unique ID */
 const generateId = (): ID => Math.random().toString(36).substring(2, 15)
@@ -132,7 +131,8 @@ interface EventsState {
   claimWinningsOnChain: (
     connection: Connection,
     user: PublicKey,
-    eventId: number
+    eventId: number,
+    betOutcome: 0 | 1
   ) => Promise<{ transaction: Transaction }>
 
   // Helpers
@@ -464,20 +464,12 @@ export const useEventsStore = create<EventsState>()(
         }
       },
 
-      claimWinningsOnChain: async (connection, user, eventId) => {
-        const config = getNetworkConfig()
-
-        // Fee accounts would typically be configured in the platform config
-        // For now, use placeholder addresses that would be set up during platform init
-        const doomFeeAccount = new PublicKey(config.tokens.doom.mint) // Placeholder
-        const lifeFeeAccount = new PublicKey(config.tokens.life.mint) // Placeholder
-
+      claimWinningsOnChain: async (connection, user, eventId, betOutcome) => {
         const transaction = await buildClaimWinningsTransaction(
           connection,
           user,
           eventId,
-          doomFeeAccount,
-          lifeFeeAccount
+          betOutcome
         )
 
         return { transaction }

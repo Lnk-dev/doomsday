@@ -9,7 +9,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer, MintTo, Burn};
 
-declare_id!("ESVUbV7TzjW8VsZdDTFAq7kobcsmGXL29YFqcPkxB1qe");
+declare_id!("HfkzCbxzH18DZaBE1gCBL6BVWfjWfz7nuBR2DP1X1RqJ");
 
 /// Fee in basis points (30 = 0.3%)
 const SWAP_FEE_BPS: u64 = 30;
@@ -20,7 +20,7 @@ const MINIMUM_LIQUIDITY: u64 = 1000;
 pub mod amm {
     use super::*;
 
-    /// Initialize a new liquidity pool
+    /// Initialize a new liquidity pool (step 1: create pool account)
     pub fn initialize_pool(ctx: Context<InitializePool>) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
 
@@ -28,14 +28,46 @@ pub mod amm {
         pool.life_mint = ctx.accounts.life_mint.key();
         pool.doom_reserve = 0;
         pool.life_reserve = 0;
-        pool.lp_mint = ctx.accounts.lp_mint.key();
+        pool.lp_mint = Pubkey::default(); // Set in step 2
         pool.lp_supply = 0;
         pool.total_fees_doom = 0;
         pool.total_fees_life = 0;
         pool.authority = ctx.accounts.authority.key();
         pool.bump = ctx.bumps.pool;
+        pool.initialized = false;
 
-        msg!("Pool initialized for DOOM/LIFE");
+        msg!("Pool account created for DOOM/LIFE");
+        Ok(())
+    }
+
+    /// Step 2: Create LP mint
+    pub fn initialize_lp_mint(ctx: Context<InitializeLpMint>) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        require!(!pool.initialized, AmmError::AlreadyInitialized);
+        pool.lp_mint = ctx.accounts.lp_mint.key();
+        msg!("LP mint created");
+        Ok(())
+    }
+
+    /// Step 3: Create DOOM vault
+    pub fn initialize_doom_vault(_ctx: Context<InitializeDoomVault>) -> Result<()> {
+        msg!("DOOM vault created");
+        Ok(())
+    }
+
+    /// Step 4: Create LIFE vault
+    pub fn initialize_life_vault(_ctx: Context<InitializeLifeVault>) -> Result<()> {
+        msg!("LIFE vault created");
+        Ok(())
+    }
+
+    /// Step 5: Mark pool as initialized
+    pub fn finalize_pool(ctx: Context<FinalizePool>) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        require!(!pool.initialized, AmmError::AlreadyInitialized);
+        require!(pool.lp_mint != Pubkey::default(), AmmError::InvalidMint);
+        pool.initialized = true;
+        msg!("Pool finalized and ready for liquidity");
         Ok(())
     }
 
@@ -368,6 +400,8 @@ pub mod amm {
 }
 
 // Account contexts
+
+/// Step 1: Initialize pool account only (reduced stack usage)
 #[derive(Accounts)]
 pub struct InitializePool<'info> {
     #[account(
@@ -382,6 +416,23 @@ pub struct InitializePool<'info> {
     pub doom_mint: Account<'info, Mint>,
     pub life_mint: Account<'info, Mint>,
 
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+/// Step 2: Initialize LP mint only (reduced stack usage)
+#[derive(Accounts)]
+pub struct InitializeLpMint<'info> {
+    #[account(
+        mut,
+        seeds = [b"pool"],
+        bump = pool.bump,
+        constraint = !pool.initialized @ AmmError::AlreadyInitialized
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
     #[account(
         init,
         payer = authority,
@@ -392,6 +443,24 @@ pub struct InitializePool<'info> {
     )]
     pub lp_mint: Account<'info, Mint>,
 
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+/// Step 3: Create DOOM vault
+#[derive(Accounts)]
+pub struct InitializeDoomVault<'info> {
+    #[account(
+        seeds = [b"pool"],
+        bump = pool.bump,
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    pub doom_mint: Account<'info, Mint>,
+
     #[account(
         init,
         payer = authority,
@@ -401,6 +470,24 @@ pub struct InitializePool<'info> {
         bump
     )]
     pub pool_doom: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+/// Step 4: Create LIFE vault
+#[derive(Accounts)]
+pub struct InitializeLifeVault<'info> {
+    #[account(
+        seeds = [b"pool"],
+        bump = pool.bump,
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    pub life_mint: Account<'info, Mint>,
 
     #[account(
         init,
@@ -417,7 +504,21 @@ pub struct InitializePool<'info> {
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
+}
+
+/// Step 5: Finalize pool
+#[derive(Accounts)]
+pub struct FinalizePool<'info> {
+    #[account(
+        mut,
+        seeds = [b"pool"],
+        bump = pool.bump,
+        constraint = !pool.initialized @ AmmError::AlreadyInitialized
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -425,7 +526,8 @@ pub struct AddLiquidity<'info> {
     #[account(
         mut,
         seeds = [b"pool"],
-        bump = pool.bump
+        bump = pool.bump,
+        constraint = pool.initialized @ AmmError::NotInitialized
     )]
     pub pool: Account<'info, LiquidityPool>,
 
@@ -470,7 +572,8 @@ pub struct RemoveLiquidity<'info> {
     #[account(
         mut,
         seeds = [b"pool"],
-        bump = pool.bump
+        bump = pool.bump,
+        constraint = pool.initialized @ AmmError::NotInitialized
     )]
     pub pool: Account<'info, LiquidityPool>,
 
@@ -515,7 +618,8 @@ pub struct Swap<'info> {
     #[account(
         mut,
         seeds = [b"pool"],
-        bump = pool.bump
+        bump = pool.bump,
+        constraint = pool.initialized @ AmmError::NotInitialized
     )]
     pub pool: Account<'info, LiquidityPool>,
 
@@ -565,6 +669,7 @@ pub struct LiquidityPool {
     pub total_fees_life: u64,
     pub authority: Pubkey,
     pub bump: u8,
+    pub initialized: bool,
 }
 
 // Errors
@@ -584,4 +689,10 @@ pub enum AmmError {
     EmptyPool,
     #[msg("Insufficient liquidity")]
     InsufficientLiquidity,
+    #[msg("Pool already initialized")]
+    AlreadyInitialized,
+    #[msg("Pool not initialized")]
+    NotInitialized,
+    #[msg("Invalid mint address")]
+    InvalidMint,
 }

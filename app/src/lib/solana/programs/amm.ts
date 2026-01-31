@@ -33,6 +33,7 @@ export interface LiquidityPool {
   totalFeesLife: BN
   authority: PublicKey
   bump: number
+  initialized: boolean
 }
 
 // PDA Seeds
@@ -303,6 +304,9 @@ function parsePool(data: Buffer): LiquidityPool {
   offset += 32
 
   const bump = data[offset]
+  offset += 1
+
+  const initialized = data[offset] === 1
 
   return {
     doomMint,
@@ -315,6 +319,7 @@ function parsePool(data: Buffer): LiquidityPool {
     totalFeesLife,
     authority,
     bump,
+    initialized,
   }
 }
 

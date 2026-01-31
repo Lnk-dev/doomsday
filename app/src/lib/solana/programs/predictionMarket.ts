@@ -11,7 +11,6 @@ import {
   Transaction,
   TransactionInstruction,
   SystemProgram,
-  SYSVAR_RENT_PUBKEY,
 } from '@solana/web3.js'
 import { BN } from '@coral-xyz/anchor'
 import {
@@ -39,6 +38,8 @@ export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]
 export interface PlatformConfig {
   authority: PublicKey
   oracle: PublicKey
+  doomMint: PublicKey
+  lifeMint: PublicKey
   feeBasisPoints: number
   paused: boolean
   totalDoomFees: BN
@@ -62,9 +63,11 @@ export interface PredictionEvent {
   totalBettors: BN
   createdAt: BN
   resolvedAt: BN | null
+  doomVault: PublicKey
+  lifeVault: PublicKey
+  bump: number
   doomVaultBump: number
   lifeVaultBump: number
-  bump: number
 }
 
 export interface UserBet {
@@ -155,9 +158,10 @@ export function findUserStatsPDA(user: PublicKey): [PublicKey, number] {
 /**
  * Derive the DOOM vault PDA for an event
  */
-export function findDoomVaultPDA(event: PublicKey): [PublicKey, number] {
+export function findDoomVaultPDA(eventId: number | BN): [PublicKey, number] {
+  const id = typeof eventId === 'number' ? new BN(eventId) : eventId
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(DOOM_VAULT_SEED), event.toBuffer()],
+    [Buffer.from(DOOM_VAULT_SEED), id.toArrayLike(Buffer, 'le', 8)],
     getPredictionMarketProgramId()
   )
 }
@@ -165,9 +169,10 @@ export function findDoomVaultPDA(event: PublicKey): [PublicKey, number] {
 /**
  * Derive the LIFE vault PDA for an event
  */
-export function findLifeVaultPDA(event: PublicKey): [PublicKey, number] {
+export function findLifeVaultPDA(eventId: number | BN): [PublicKey, number] {
+  const id = typeof eventId === 'number' ? new BN(eventId) : eventId
   return PublicKey.findProgramAddressSync(
-    [Buffer.from(LIFE_VAULT_SEED), event.toBuffer()],
+    [Buffer.from(LIFE_VAULT_SEED), id.toArrayLike(Buffer, 'le', 8)],
     getPredictionMarketProgramId()
   )
 }
@@ -185,16 +190,18 @@ export async function buildPlaceBetTransaction(
   const [platformConfig] = findPlatformConfigPDA()
   const [event] = findEventPDA(eventId)
   const [userBet] = findUserBetPDA(event, user)
-  const [userStats] = findUserStatsPDA(user)
-  const [doomVault] = findDoomVaultPDA(event)
-  const [lifeVault] = findLifeVaultPDA(event)
+  const [doomVault] = findDoomVaultPDA(eventId)
+  const [lifeVault] = findLifeVaultPDA(eventId)
 
   const config = getNetworkConfig()
   const doomMint = new PublicKey(config.tokens.doom.mint)
   const lifeMint = new PublicKey(config.tokens.life.mint)
 
-  const userDoomAccount = getAssociatedTokenAddressSync(doomMint, user)
-  const userLifeAccount = getAssociatedTokenAddressSync(lifeMint, user)
+  // Determine which token and vault based on outcome
+  const userTokenAccount = outcome === Outcome.Doom
+    ? getAssociatedTokenAddressSync(doomMint, user)
+    : getAssociatedTokenAddressSync(lifeMint, user)
+  const eventVault = outcome === Outcome.Doom ? doomVault : lifeVault
 
   // Build instruction data
   // place_bet discriminator + outcome (1 byte) + amount (8 bytes)
@@ -210,14 +217,11 @@ export async function buildPlaceBetTransaction(
       { pubkey: platformConfig, isSigner: false, isWritable: true },
       { pubkey: event, isSigner: false, isWritable: true },
       { pubkey: userBet, isSigner: false, isWritable: true },
-      { pubkey: userDoomAccount, isSigner: false, isWritable: true },
-      { pubkey: userLifeAccount, isSigner: false, isWritable: true },
-      { pubkey: doomVault, isSigner: false, isWritable: true },
-      { pubkey: lifeVault, isSigner: false, isWritable: true },
-      { pubkey: userStats, isSigner: false, isWritable: true },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: eventVault, isSigner: false, isWritable: true },
       { pubkey: user, isSigner: true, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     programId,
     data,
@@ -233,27 +237,29 @@ export async function buildPlaceBetTransaction(
 
 /**
  * Build a claim winnings transaction
+ * @param betOutcome - The outcome the user bet on (needed to determine which vault/token)
  */
 export async function buildClaimWinningsTransaction(
   connection: Connection,
   user: PublicKey,
   eventId: number | BN,
-  doomFeeAccount: PublicKey,
-  lifeFeeAccount: PublicKey
+  betOutcome: Outcome
 ): Promise<Transaction> {
   const [platformConfig] = findPlatformConfigPDA()
   const [event] = findEventPDA(eventId)
   const [userBet] = findUserBetPDA(event, user)
-  const [userStats] = findUserStatsPDA(user)
-  const [doomVault] = findDoomVaultPDA(event)
-  const [lifeVault] = findLifeVaultPDA(event)
+  const [doomVault] = findDoomVaultPDA(eventId)
+  const [lifeVault] = findLifeVaultPDA(eventId)
 
   const config = getNetworkConfig()
   const doomMint = new PublicKey(config.tokens.doom.mint)
   const lifeMint = new PublicKey(config.tokens.life.mint)
 
-  const userDoomAccount = getAssociatedTokenAddressSync(doomMint, user)
-  const userLifeAccount = getAssociatedTokenAddressSync(lifeMint, user)
+  // Winnings come from the vault matching the user's bet outcome
+  const userTokenAccount = betOutcome === Outcome.Doom
+    ? getAssociatedTokenAddressSync(doomMint, user)
+    : getAssociatedTokenAddressSync(lifeMint, user)
+  const eventVault = betOutcome === Outcome.Doom ? doomVault : lifeVault
 
   // claim_winnings discriminator
   const discriminator = Buffer.from([161, 215, 24, 59, 14, 236, 242, 221])
@@ -262,17 +268,63 @@ export async function buildClaimWinningsTransaction(
 
   const instruction = new TransactionInstruction({
     keys: [
-      { pubkey: platformConfig, isSigner: false, isWritable: true },
+      { pubkey: platformConfig, isSigner: false, isWritable: false },
       { pubkey: event, isSigner: false, isWritable: false },
       { pubkey: userBet, isSigner: false, isWritable: true },
-      { pubkey: userDoomAccount, isSigner: false, isWritable: true },
-      { pubkey: userLifeAccount, isSigner: false, isWritable: true },
-      { pubkey: doomVault, isSigner: false, isWritable: true },
-      { pubkey: lifeVault, isSigner: false, isWritable: true },
-      { pubkey: doomFeeAccount, isSigner: false, isWritable: true },
-      { pubkey: lifeFeeAccount, isSigner: false, isWritable: true },
-      { pubkey: userStats, isSigner: false, isWritable: true },
-      { pubkey: user, isSigner: true, isWritable: true },
+      { pubkey: eventVault, isSigner: false, isWritable: true },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: user, isSigner: true, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    programId,
+    data: discriminator,
+  })
+
+  const transaction = new Transaction().add(instruction)
+  transaction.feePayer = user
+  const latestBlockhash = await connection.getLatestBlockhash()
+  transaction.recentBlockhash = latestBlockhash.blockhash
+
+  return transaction
+}
+
+/**
+ * Build a refund bet transaction (for cancelled events)
+ * @param betOutcome - The outcome the user bet on (needed to determine which vault/token)
+ */
+export async function buildRefundBetTransaction(
+  connection: Connection,
+  user: PublicKey,
+  eventId: number | BN,
+  betOutcome: Outcome
+): Promise<Transaction> {
+  const [event] = findEventPDA(eventId)
+  const [userBet] = findUserBetPDA(event, user)
+  const [doomVault] = findDoomVaultPDA(eventId)
+  const [lifeVault] = findLifeVaultPDA(eventId)
+
+  const config = getNetworkConfig()
+  const doomMint = new PublicKey(config.tokens.doom.mint)
+  const lifeMint = new PublicKey(config.tokens.life.mint)
+
+  // Refund comes from the vault matching the user's original bet
+  const userTokenAccount = betOutcome === Outcome.Doom
+    ? getAssociatedTokenAddressSync(doomMint, user)
+    : getAssociatedTokenAddressSync(lifeMint, user)
+  const eventVault = betOutcome === Outcome.Doom ? doomVault : lifeVault
+
+  // refund_bet discriminator
+  const discriminator = Buffer.from([106, 224, 216, 211, 148, 133, 54, 138])
+
+  const programId = getPredictionMarketProgramId()
+
+  const instruction = new TransactionInstruction({
+    keys: [
+      { pubkey: event, isSigner: false, isWritable: false },
+      { pubkey: userBet, isSigner: false, isWritable: true },
+      { pubkey: eventVault, isSigner: false, isWritable: true },
+      { pubkey: userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: user, isSigner: true, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
     programId,
@@ -301,9 +353,8 @@ export async function buildCreateEventTransaction(
 ): Promise<Transaction> {
   const [platformConfig] = findPlatformConfigPDA()
   const [event] = findEventPDA(eventId)
-  const [userStats] = findUserStatsPDA(creator)
-  const [doomVault] = findDoomVaultPDA(event)
-  const [lifeVault] = findLifeVaultPDA(event)
+  const [doomVault] = findDoomVaultPDA(eventId)
+  const [lifeVault] = findLifeVaultPDA(eventId)
 
   const config = getNetworkConfig()
   const doomMint = new PublicKey(config.tokens.doom.mint)
@@ -338,17 +389,15 @@ export async function buildCreateEventTransaction(
 
   const instruction = new TransactionInstruction({
     keys: [
-      { pubkey: platformConfig, isSigner: false, isWritable: false },
+      { pubkey: platformConfig, isSigner: false, isWritable: true },
       { pubkey: event, isSigner: false, isWritable: true },
-      { pubkey: doomMint, isSigner: false, isWritable: false },
-      { pubkey: lifeMint, isSigner: false, isWritable: false },
       { pubkey: doomVault, isSigner: false, isWritable: true },
       { pubkey: lifeVault, isSigner: false, isWritable: true },
-      { pubkey: userStats, isSigner: false, isWritable: true },
+      { pubkey: doomMint, isSigner: false, isWritable: false },
+      { pubkey: lifeMint, isSigner: false, isWritable: false },
       { pubkey: creator, isSigner: true, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     programId,
     data,
@@ -444,10 +493,11 @@ export async function fetchAllEvents(
 ): Promise<PredictionEvent[]> {
   const programId = getPredictionMarketProgramId()
 
-  // Get all program accounts with event discriminator
+  // Get all program accounts with event account size
+  // PredictionEvent accounts are 753 bytes based on actual on-chain data
   const accounts = await connection.getProgramAccounts(programId, {
     filters: [
-      { dataSize: 800 }, // Approximate event account size
+      { dataSize: 753 }, // Actual event account size
     ],
   })
 
@@ -510,6 +560,12 @@ function parsePlatformConfig(data: Buffer): PlatformConfig {
   const oracle = new PublicKey(data.slice(offset, offset + 32))
   offset += 32
 
+  const doomMint = new PublicKey(data.slice(offset, offset + 32))
+  offset += 32
+
+  const lifeMint = new PublicKey(data.slice(offset, offset + 32))
+  offset += 32
+
   const feeBasisPoints = data.readUInt16LE(offset)
   offset += 2
 
@@ -533,6 +589,8 @@ function parsePlatformConfig(data: Buffer): PlatformConfig {
   return {
     authority,
     oracle,
+    doomMint,
+    lifeMint,
     feeBasisPoints,
     paused,
     totalDoomFees,
@@ -552,15 +610,16 @@ function parseEvent(data: Buffer): PredictionEvent {
   const creator = new PublicKey(data.slice(offset, offset + 32))
   offset += 32
 
+  // Anchor strings: 4-byte length prefix + variable content
   const titleLen = data.readUInt32LE(offset)
   offset += 4
-  const title = data.slice(offset, offset + titleLen).toString()
-  offset += 128 // Fixed size allocation
+  const title = data.slice(offset, offset + titleLen).toString('utf-8')
+  offset += titleLen // Variable length
 
   const descLen = data.readUInt32LE(offset)
   offset += 4
-  const description = data.slice(offset, offset + descLen).toString()
-  offset += 512 // Fixed size allocation
+  const description = data.slice(offset, offset + descLen).toString('utf-8')
+  offset += descLen // Variable length
 
   const deadline = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
@@ -571,10 +630,11 @@ function parseEvent(data: Buffer): PredictionEvent {
   const status = data[offset] as EventStatus
   offset += 1
 
+  // Option<Outcome>: 1 byte discriminator + optional 1 byte value
   const hasOutcome = data[offset] === 1
   offset += 1
   const outcome = hasOutcome ? (data[offset] as Outcome) : null
-  offset += 1
+  if (hasOutcome) offset += 1
 
   const doomPool = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
@@ -582,24 +642,32 @@ function parseEvent(data: Buffer): PredictionEvent {
   const lifePool = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
 
-  const totalBettors = new BN(data.slice(offset, offset + 8), 'le')
-  offset += 8
+  // total_bettors is u32 (4 bytes), not u64
+  const totalBettors = new BN(data.readUInt32LE(offset))
+  offset += 4
 
   const createdAt = new BN(data.slice(offset, offset + 8), 'le')
   offset += 8
 
+  // Option<i64>: 1 byte discriminator + optional 8 bytes
   const hasResolvedAt = data[offset] === 1
   offset += 1
   const resolvedAt = hasResolvedAt ? new BN(data.slice(offset, offset + 8), 'le') : null
-  offset += 8
+  if (hasResolvedAt) offset += 8
+
+  const doomVault = new PublicKey(data.slice(offset, offset + 32))
+  offset += 32
+
+  const lifeVault = new PublicKey(data.slice(offset, offset + 32))
+  offset += 32
+
+  const bump = data[offset]
+  offset += 1
 
   const doomVaultBump = data[offset]
   offset += 1
 
   const lifeVaultBump = data[offset]
-  offset += 1
-
-  const bump = data[offset]
 
   return {
     eventId,
@@ -615,9 +683,11 @@ function parseEvent(data: Buffer): PredictionEvent {
     totalBettors,
     createdAt,
     resolvedAt,
+    doomVault,
+    lifeVault,
+    bump,
     doomVaultBump,
     lifeVaultBump,
-    bump,
   }
 }
 

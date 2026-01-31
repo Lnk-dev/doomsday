@@ -2,48 +2,56 @@
  * User Store
  *
  * Zustand store for managing current user state.
+ * Wallet-first identity: wallet address IS the identity.
  * Handles:
- * - Anonymous user creation
+ * - Wallet-based authentication
  * - User profile management
- * - Token balances (mock for now)
  * - Life posting cost calculation
  */
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Author, ID } from '@/types'
-
-/** Generate anonymous user ID */
-const generateAnonId = (): ID => `anon_${Math.random().toString(36).substring(2, 8)}`
+import {
+  authenticateWallet as apiAuthenticateWallet,
+  fetchUserProfile,
+  type AuthUser,
+} from '@/lib/api/auth'
 
 interface UserState {
-  /** Current user ID (local identifier) */
+  // Identity - wallet is primary
+  walletAddress: string | null
   userId: ID
-  /** JWT auth token for API requests */
   token: string | null
-  /** User's display author info */
-  author: Author
-  /** User's display name */
+
+  // Profile from backend
+  username: string
   displayName: string
-  /** User's bio */
   bio: string
-  /** User's avatar URL */
   avatarUrl: string | null
-  /** $DOOM token balance */
-  doomBalance: number
-  /** $LIFE token balance */
-  lifeBalance: number
-  /** Days with consecutive life posts */
+  verified: boolean
+
+  // Stats (backend persisted)
   daysLiving: number
-  /** Total life posts made */
   lifePosts: number
-  /** Is wallet connected */
+
+  // Legacy balances (kept for compatibility with existing components)
+  // Note: Real on-chain balances should be fetched via useTokenBalance hook
+  doomBalance: number
+  lifeBalance: number
+
+  // Legacy author object for compatibility
+  author: Author
+
+  // Auth state
+  isAuthenticated: boolean
+  isLoading: boolean
+  authError: string | null
+
+  // Social features
   isConnected: boolean
-  /** List of followed usernames */
   following: string[]
-  /** List of blocked usernames */
   blocked: string[]
-  /** List of muted usernames */
   muted: string[]
 
   // Computed
@@ -58,21 +66,21 @@ interface UserState {
   /** Check if content should be hidden (blocked or muted) */
   isHidden: (username: string) => boolean
 
-  // Actions
+  // Auth actions
+  /** Authenticate with wallet address */
+  authenticateWithWallet: (address: string) => Promise<void>
+  /** Logout and clear all auth state */
+  logout: () => void
+  /** Restore session from stored token */
+  restoreSession: () => Promise<void>
+
+  // Profile actions
   /** Update username */
   setUsername: (username: string) => void
-  /** Add $DOOM tokens */
-  addDoom: (amount: number) => void
-  /** Spend $DOOM tokens */
-  spendDoom: (amount: number) => boolean
   /** Increment life post count */
   incrementLifePosts: () => void
   /** Set connected wallet */
   setConnected: (connected: boolean) => void
-  /** Donate $LIFE to another user (costs $DOOM) */
-  donateLife: (amount: number) => boolean
-  /** Add $LIFE tokens */
-  addLife: (amount: number) => void
   /** Follow a user */
   followUser: (username: string) => void
   /** Unfollow a user */
@@ -90,31 +98,54 @@ interface UserState {
   /** Set auth token */
   setToken: (token: string | null) => void
   /** Set user from API response */
-  setUser: (user: { id: string; username: string; displayName?: string; avatarUrl?: string; doomBalance?: number }) => void
+  setUser: (user: AuthUser) => void
   /** Get current user object for DMs */
   getUser: () => { id: string; username: string; displayName: string | null; avatarUrl: string | null; verified: boolean } | null
+
+  // Legacy balance actions (kept for compatibility)
+  /** Add $DOOM tokens (legacy - use wallet store for real balances) */
+  addDoom: (amount: number) => void
+  /** Spend $DOOM tokens (legacy - use wallet store for real balances) */
+  spendDoom: (amount: number) => boolean
+  /** Donate $LIFE to another user (costs $DOOM) - legacy */
+  donateLife: (amount: number) => boolean
+  /** Add $LIFE tokens (legacy - use wallet store for real balances) */
+  addLife: (amount: number) => void
+}
+
+/** Generate anonymous user ID for unauthenticated users */
+const generateAnonId = (): ID => `anon_${Math.random().toString(36).substring(2, 8)}`
+
+const initialState = {
+  walletAddress: null,
+  userId: generateAnonId(),
+  token: null,
+  username: 'anonymous',
+  displayName: '',
+  bio: '',
+  avatarUrl: null,
+  verified: false,
+  daysLiving: 0,
+  lifePosts: 0,
+  doomBalance: 100, // Legacy mock balance for compatibility
+  lifeBalance: 0,   // Legacy mock balance for compatibility
+  author: {
+    address: null,
+    username: 'anonymous',
+  },
+  isAuthenticated: false,
+  isLoading: false,
+  authError: null,
+  isConnected: false,
+  following: [],
+  blocked: [],
+  muted: [],
 }
 
 export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
-      userId: generateAnonId(),
-      token: null,
-      author: {
-        address: null,
-        username: 'anonymous',
-      },
-      displayName: '',
-      bio: '',
-      avatarUrl: null,
-      doomBalance: 100, // Start with some tokens for testing
-      lifeBalance: 0,
-      daysLiving: 0,
-      lifePosts: 0,
-      isConnected: false,
-      following: [],
-      blocked: [],
-      muted: [],
+      ...initialState,
 
       getLifePostCost: () => {
         const { lifePosts, daysLiving } = get()
@@ -140,26 +171,102 @@ export const useUserStore = create<UserState>()(
         return state.blocked.includes(username) || state.muted.includes(username)
       },
 
+      authenticateWithWallet: async (address: string) => {
+        // Don't re-authenticate if already authenticated with same wallet
+        const currentState = get()
+        if (currentState.isAuthenticated && currentState.walletAddress === address) {
+          return
+        }
+
+        set({ isLoading: true, authError: null })
+
+        try {
+          const { user, token } = await apiAuthenticateWallet(address)
+
+          set({
+            walletAddress: user.walletAddress,
+            userId: user.id,
+            token,
+            username: user.username,
+            displayName: user.displayName || '',
+            bio: user.bio || '',
+            avatarUrl: user.avatarUrl,
+            verified: user.verified,
+            daysLiving: user.daysLiving,
+            lifePosts: user.lifePosts,
+            author: {
+              address: user.walletAddress,
+              username: user.username,
+              verified: user.verified,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+            authError: null,
+            isConnected: true,
+          })
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Authentication failed'
+          set({
+            isLoading: false,
+            authError: errorMessage,
+          })
+          throw error
+        }
+      },
+
+      logout: () => {
+        set({
+          ...initialState,
+          userId: generateAnonId(), // Generate new anon ID on logout
+          // Preserve social preferences
+          following: get().following,
+          blocked: get().blocked,
+          muted: get().muted,
+        })
+      },
+
+      restoreSession: async () => {
+        const { token } = get()
+        if (!token) return
+
+        set({ isLoading: true })
+
+        try {
+          const { user } = await fetchUserProfile(token)
+
+          set({
+            walletAddress: user.walletAddress,
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName || '',
+            bio: user.bio || '',
+            avatarUrl: user.avatarUrl,
+            verified: user.verified,
+            daysLiving: user.daysLiving,
+            lifePosts: user.lifePosts,
+            author: {
+              address: user.walletAddress,
+              username: user.username,
+              verified: user.verified,
+            },
+            isAuthenticated: true,
+            isLoading: false,
+          })
+        } catch {
+          // Token invalid, clear it
+          set({
+            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+          })
+        }
+      },
+
       setUsername: (username) => {
         set((state) => ({
+          username,
           author: { ...state.author, username },
         }))
-      },
-
-      addDoom: (amount) => {
-        set((state) => ({
-          doomBalance: state.doomBalance + amount,
-        }))
-      },
-
-      spendDoom: (amount) => {
-        const { doomBalance } = get()
-        if (doomBalance < amount) return false
-
-        set((state) => ({
-          doomBalance: state.doomBalance - amount,
-        }))
-        return true
       },
 
       incrementLifePosts: () => {
@@ -170,23 +277,6 @@ export const useUserStore = create<UserState>()(
 
       setConnected: (connected) => {
         set({ isConnected: connected })
-      },
-
-      donateLife: (amount) => {
-        const { doomBalance } = get()
-        // Cost: 1 $DOOM per $LIFE donated
-        if (doomBalance < amount) return false
-
-        set((state) => ({
-          doomBalance: state.doomBalance - amount,
-        }))
-        return true
-      },
-
-      addLife: (amount) => {
-        set((state) => ({
-          lifeBalance: state.lifeBalance + amount,
-        }))
       },
 
       followUser: (username) => {
@@ -247,30 +337,94 @@ export const useUserStore = create<UserState>()(
 
       setUser: (user) => {
         set({
+          walletAddress: user.walletAddress,
           userId: user.id,
-          author: { address: null, username: user.username },
+          username: user.username,
           displayName: user.displayName || '',
-          avatarUrl: user.avatarUrl || null,
-          doomBalance: user.doomBalance ?? 100,
+          bio: user.bio || '',
+          avatarUrl: user.avatarUrl,
+          verified: user.verified,
+          daysLiving: user.daysLiving,
+          lifePosts: user.lifePosts,
+          author: {
+            address: user.walletAddress,
+            username: user.username,
+            verified: user.verified,
+          },
         })
       },
 
       getUser: () => {
         const state = get()
-        if (!state.isConnected && state.author.username === 'anonymous') {
+        if (!state.isAuthenticated) {
           return null
         }
         return {
           id: state.userId,
-          username: state.author.username,
+          username: state.username,
           displayName: state.displayName || null,
           avatarUrl: state.avatarUrl,
-          verified: state.author.verified ?? false,
+          verified: state.verified,
         }
+      },
+
+      // Legacy balance actions for compatibility
+      addDoom: (amount) => {
+        set((state) => ({
+          doomBalance: state.doomBalance + amount,
+        }))
+      },
+
+      spendDoom: (amount) => {
+        const { doomBalance } = get()
+        if (doomBalance < amount) return false
+
+        set((state) => ({
+          doomBalance: state.doomBalance - amount,
+        }))
+        return true
+      },
+
+      donateLife: (amount) => {
+        const { doomBalance } = get()
+        // Cost: 1 $DOOM per $LIFE donated
+        if (doomBalance < amount) return false
+
+        set((state) => ({
+          doomBalance: state.doomBalance - amount,
+        }))
+        return true
+      },
+
+      addLife: (amount) => {
+        set((state) => ({
+          lifeBalance: state.lifeBalance + amount,
+        }))
       },
     }),
     {
       name: 'doomsday-user',
+      partialize: (state) => ({
+        // Persist auth state
+        walletAddress: state.walletAddress,
+        userId: state.userId,
+        token: state.token,
+        username: state.username,
+        displayName: state.displayName,
+        bio: state.bio,
+        avatarUrl: state.avatarUrl,
+        verified: state.verified,
+        daysLiving: state.daysLiving,
+        lifePosts: state.lifePosts,
+        isAuthenticated: state.isAuthenticated,
+        // Persist legacy balances for compatibility
+        doomBalance: state.doomBalance,
+        lifeBalance: state.lifeBalance,
+        // Persist social preferences
+        following: state.following,
+        blocked: state.blocked,
+        muted: state.muted,
+      }),
     }
   )
 )

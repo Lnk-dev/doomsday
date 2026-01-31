@@ -3,11 +3,13 @@
  * Issue #52: Add user profile editing
  *
  * Modal for editing user profile information.
+ * Syncs changes with backend API.
  */
 
 import { useState } from 'react'
-import { X, Camera } from 'lucide-react'
+import { X, Camera, Loader2 } from 'lucide-react'
 import { useUserStore } from '@/store'
+import { updateProfile as apiUpdateProfile } from '@/lib/api/auth'
 
 interface ProfileEditModalProps {
   onClose: () => void
@@ -17,8 +19,10 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
   const author = useUserStore((state) => state.author)
   const displayName = useUserStore((state) => state.displayName)
   const bio = useUserStore((state) => state.bio)
+  const token = useUserStore((state) => state.token)
   const updateProfile = useUserStore((state) => state.updateProfile)
   const setUsername = useUserStore((state) => state.setUsername)
+  const setUser = useUserStore((state) => state.setUser)
 
   const [formData, setFormData] = useState({
     displayName: displayName || author.username,
@@ -27,6 +31,8 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
@@ -47,19 +53,43 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return
 
-    updateProfile({
+    setIsSaving(true)
+    setSaveError(null)
+
+    const updates = {
       displayName: formData.displayName.trim() || formData.username,
       bio: formData.bio.trim(),
-    })
-
-    if (formData.username !== author.username) {
-      setUsername(formData.username.toLowerCase())
+      ...(formData.username !== author.username && { username: formData.username.toLowerCase() }),
     }
 
-    onClose()
+    // If we have a token, sync with backend
+    if (token) {
+      try {
+        const { user } = await apiUpdateProfile(token, updates)
+        // Update store with backend response
+        setUser(user)
+        onClose()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to save profile'
+        setSaveError(message)
+        setIsSaving(false)
+      }
+    } else {
+      // No token - just update local store (legacy behavior)
+      updateProfile({
+        displayName: updates.displayName,
+        bio: updates.bio,
+      })
+
+      if (updates.username) {
+        setUsername(updates.username)
+      }
+
+      onClose()
+    }
   }
 
   return (
@@ -67,17 +97,26 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
       <div className="w-full max-w-md mx-4 bg-[#1a1a1a] rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#333]">
-          <button onClick={onClose} className="p-1">
+          <button onClick={onClose} className="p-1" disabled={isSaving}>
             <X size={24} className="text-white" />
           </button>
           <h2 className="text-[17px] font-semibold text-white">Edit profile</h2>
           <button
             onClick={handleSave}
-            className="px-4 py-1.5 bg-white text-black text-[14px] font-semibold rounded-full"
+            disabled={isSaving}
+            className="px-4 py-1.5 bg-white text-black text-[14px] font-semibold rounded-full disabled:opacity-50 flex items-center gap-2"
           >
+            {isSaving && <Loader2 size={14} className="animate-spin" />}
             Save
           </button>
         </div>
+
+        {/* Error banner */}
+        {saveError && (
+          <div className="mx-4 mt-4 p-3 rounded-xl bg-[#ff304020] border border-[#ff304040]">
+            <p className="text-[13px] text-[#ff3040]">{saveError}</p>
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-4">
@@ -107,7 +146,8 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
                 value={formData.displayName}
                 onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
                 placeholder="Your display name"
-                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-xl text-[15px] text-white placeholder-[#555] outline-none focus:border-[#555] transition-colors"
+                disabled={isSaving}
+                className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-xl text-[15px] text-white placeholder-[#555] outline-none focus:border-[#555] transition-colors disabled:opacity-50"
                 maxLength={50}
               />
             </div>
@@ -122,7 +162,8 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
                   placeholder="username"
-                  className={`w-full pl-8 pr-4 py-3 bg-[#0a0a0a] border rounded-xl text-[15px] text-white placeholder-[#555] outline-none transition-colors ${
+                  disabled={isSaving}
+                  className={`w-full pl-8 pr-4 py-3 bg-[#0a0a0a] border rounded-xl text-[15px] text-white placeholder-[#555] outline-none transition-colors disabled:opacity-50 ${
                     errors.username ? 'border-[#ff3040]' : 'border-[#333] focus:border-[#555]'
                   }`}
                   maxLength={30}
@@ -141,7 +182,8 @@ export function ProfileEditModal({ onClose }: ProfileEditModalProps) {
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                 placeholder="Tell the world about yourself"
                 rows={3}
-                className={`w-full px-4 py-3 bg-[#0a0a0a] border rounded-xl text-[15px] text-white placeholder-[#555] outline-none resize-none transition-colors ${
+                disabled={isSaving}
+                className={`w-full px-4 py-3 bg-[#0a0a0a] border rounded-xl text-[15px] text-white placeholder-[#555] outline-none resize-none transition-colors disabled:opacity-50 ${
                   errors.bio ? 'border-[#ff3040]' : 'border-[#333] focus:border-[#555]'
                 }`}
                 maxLength={160}

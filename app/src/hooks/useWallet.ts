@@ -10,6 +10,7 @@ import { useCallback, useEffect } from 'react'
 import { useConnection, useWallet as useSolanaWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useWalletStore } from '@/store/wallet'
+import { useUserStore } from '@/store/user'
 
 export function useWallet() {
   const { connection } = useConnection()
@@ -35,10 +36,18 @@ export function useWallet() {
     clearBalances,
   } = useWalletStore()
 
+  // Get user store setConnected
+  const setUserConnected = useUserStore((state) => state.setConnected)
+
   // Sync connecting state
   useEffect(() => {
     setConnecting(connecting)
   }, [connecting, setConnecting])
+
+  // Sync connected state to user store
+  useEffect(() => {
+    setUserConnected(connected)
+  }, [connected, setUserConnected])
 
   // Fetch SOL balance when connected
   const fetchBalance = useCallback(async () => {

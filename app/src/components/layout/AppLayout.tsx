@@ -12,10 +12,21 @@
 import { Outlet } from 'react-router-dom'
 import { BottomNav } from './BottomNav'
 import { ToastContainer } from '@/components/ui/ToastContainer'
+import { useWallet } from '@/hooks/useWallet'
+
+/** Syncs wallet adapter state to user store */
+function WalletSync() {
+  // This hook syncs connected state to user store
+  useWallet()
+  return null
+}
 
 export function AppLayout() {
   return (
     <div className="flex flex-col min-h-screen bg-black">
+      {/* Sync wallet state */}
+      <WalletSync />
+
       {/* Skip to main content link for keyboard/screen reader users */}
       <a href="#main-content" className="skip-to-content">
         Skip to main content

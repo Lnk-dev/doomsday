@@ -1,6 +1,7 @@
 /**
- * Initialize Platform Script
- * Initializes the prediction market platform on devnet
+ * Migrate Platform Script
+ * Migrates the platform config from old format (108 bytes) to new format (172 bytes)
+ * with doom_mint and life_mint fields
  */
 
 import {
@@ -14,6 +15,7 @@ import {
 } from '@solana/web3.js'
 import * as fs from 'fs'
 import * as path from 'path'
+import { createHash } from 'crypto'
 
 const PROGRAM_ID = new PublicKey('BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc')
 const RPC_URL = 'https://api.devnet.solana.com'
@@ -22,13 +24,11 @@ const RPC_URL = 'https://api.devnet.solana.com'
 const DOOM_MINT = new PublicKey('9Dc8sELJerfzPfk9DMP5vahLFxvr6rzn7PB8E6EK4Ah5')
 const LIFE_MINT = new PublicKey('D2DDKv5JXjL1APVBP1ySY3PMUFEjL7R8NRz9r9a4JCvE')
 
-// Fee in basis points (200 = 2%)
-const FEE_BASIS_POINTS = 200
-
 async function main() {
-  console.log('Initializing Prediction Market Platform...')
+  console.log('Migrating Platform Config...')
   console.log('Program ID:', PROGRAM_ID.toString())
-  console.log('Fee:', FEE_BASIS_POINTS / 100, '%')
+  console.log('DOOM Mint:', DOOM_MINT.toString())
+  console.log('LIFE Mint:', LIFE_MINT.toString())
 
   // Load wallet keypair
   const walletPath = path.join(process.env.HOME || '', '.config/solana/id.json')
@@ -47,33 +47,42 @@ async function main() {
   // Connect to devnet
   const connection = new Connection(RPC_URL, 'confirmed')
 
-  // Check if already initialized
-  const existingAccount = await connection.getAccountInfo(platformConfig)
-  if (existingAccount) {
-    console.log('Platform already initialized!')
-    console.log('Account size:', existingAccount.data.length, 'bytes')
+  // Check current account size
+  const accountInfo = await connection.getAccountInfo(platformConfig)
+  if (!accountInfo) {
+    console.log('Platform config not found! Please initialize first.')
     return
   }
 
+  console.log('Current account size:', accountInfo.data.length, 'bytes')
+
+  // Expected sizes
+  const OLD_SIZE = 108  // Without token mints
+  const NEW_SIZE = 172  // With token mints
+
+  if (accountInfo.data.length >= NEW_SIZE) {
+    console.log('Platform already migrated to new format!')
+    return
+  }
+
+  if (accountInfo.data.length !== OLD_SIZE) {
+    console.log('Unexpected account size:', accountInfo.data.length)
+    console.log('Expected:', OLD_SIZE, '(old) or', NEW_SIZE, '(new)')
+    return
+  }
+
+  console.log('\nMigrating from', OLD_SIZE, 'bytes to', NEW_SIZE, 'bytes...')
+
   // Build instruction data
-  // Discriminator for initialize_platform (first 8 bytes of sha256("global:initialize_platform"))
-  const discriminator = Buffer.from([
-    119, 201, 101, 45, 75, 122, 89, 3
-  ])
+  // Discriminator for migrate_platform (first 8 bytes of sha256("global:migrate_platform"))
+  const discriminator = createHash('sha256')
+    .update('global:migrate_platform')
+    .digest()
+    .slice(0, 8)
 
-  // fee_basis_points as u16 (little-endian)
-  const feeBuffer = Buffer.alloc(2)
-  feeBuffer.writeUInt16LE(FEE_BASIS_POINTS)
-
-  const data = Buffer.concat([discriminator, feeBuffer])
+  const data = Buffer.concat([discriminator])
 
   // Build instruction
-  // Account order matches InitializePlatform struct:
-  // 1. platform_config (PDA, writable)
-  // 2. doom_mint (read-only)
-  // 3. life_mint (read-only)
-  // 4. authority (signer, writable)
-  // 5. system_program (read-only)
   const instruction = new TransactionInstruction({
     keys: [
       { pubkey: platformConfig, isSigner: false, isWritable: true },
@@ -89,7 +98,7 @@ async function main() {
   // Build and send transaction
   const transaction = new Transaction().add(instruction)
 
-  console.log('Sending transaction...')
+  console.log('Sending migration transaction...')
 
   try {
     const signature = await sendAndConfirmTransaction(
@@ -99,11 +108,17 @@ async function main() {
       { commitment: 'confirmed' }
     )
 
-    console.log('Platform initialized successfully!')
+    console.log('\nPlatform migrated successfully!')
     console.log('Signature:', signature)
     console.log('Explorer:', `https://explorer.solana.com/tx/${signature}?cluster=devnet`)
+
+    // Verify migration
+    const newAccountInfo = await connection.getAccountInfo(platformConfig)
+    if (newAccountInfo) {
+      console.log('\nNew account size:', newAccountInfo.data.length, 'bytes')
+    }
   } catch (error) {
-    console.error('Failed to initialize platform:', error)
+    console.error('Failed to migrate platform:', error)
     throw error
   }
 }

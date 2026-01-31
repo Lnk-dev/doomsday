@@ -5,7 +5,7 @@
  * Displays platform fee collection statistics from the blockchain.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { Coins, TrendingUp, RefreshCw, Wallet, Percent } from 'lucide-react'
 import { fetchPlatformConfig, type PlatformConfig } from '@/lib/solana/programs/predictionMarket'
@@ -23,7 +23,7 @@ export function FeeMetrics({ refreshInterval = 30000 }: FeeMetricsProps) {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     setIsLoading(true)
     setError(null)
 
@@ -37,7 +37,7 @@ export function FeeMetrics({ refreshInterval = 30000 }: FeeMetricsProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [connection])
 
   useEffect(() => {
     fetchConfig()
@@ -46,7 +46,7 @@ export function FeeMetrics({ refreshInterval = 30000 }: FeeMetricsProps) {
       const interval = setInterval(fetchConfig, refreshInterval)
       return () => clearInterval(interval)
     }
-  }, [connection, refreshInterval])
+  }, [fetchConfig, refreshInterval])
 
   // Format large numbers
   const formatNumber = (num: number): string => {

@@ -71,10 +71,12 @@ export function ClaimWinnings({
     try {
       setState('signing')
 
+      const betOutcome = outcome === 'doom' ? 0 : 1
       const { transaction } = await claimWinningsOnChain(
         connection,
         publicKey,
-        onChainEventId
+        onChainEventId,
+        betOutcome as 0 | 1
       )
 
       setState('confirming')

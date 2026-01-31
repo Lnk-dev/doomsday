@@ -40,16 +40,34 @@ pub mod amm {
         Ok(())
     }
 
-    /// Initialize pool vaults (step 2: create LP mint and token vaults)
-    pub fn initialize_pool_vaults(ctx: Context<InitializePoolVaults>) -> Result<()> {
+    /// Step 2: Create LP mint
+    pub fn initialize_lp_mint(ctx: Context<InitializeLpMint>) -> Result<()> {
         let pool = &mut ctx.accounts.pool;
-
         require!(!pool.initialized, AmmError::AlreadyInitialized);
-
         pool.lp_mint = ctx.accounts.lp_mint.key();
-        pool.initialized = true;
+        msg!("LP mint created");
+        Ok(())
+    }
 
-        msg!("Pool vaults initialized");
+    /// Step 3: Create DOOM vault
+    pub fn initialize_doom_vault(_ctx: Context<InitializeDoomVault>) -> Result<()> {
+        msg!("DOOM vault created");
+        Ok(())
+    }
+
+    /// Step 4: Create LIFE vault
+    pub fn initialize_life_vault(_ctx: Context<InitializeLifeVault>) -> Result<()> {
+        msg!("LIFE vault created");
+        Ok(())
+    }
+
+    /// Step 5: Mark pool as initialized
+    pub fn finalize_pool(ctx: Context<FinalizePool>) -> Result<()> {
+        let pool = &mut ctx.accounts.pool;
+        require!(!pool.initialized, AmmError::AlreadyInitialized);
+        require!(pool.lp_mint != Pubkey::default(), AmmError::InvalidMint);
+        pool.initialized = true;
+        msg!("Pool finalized and ready for liquidity");
         Ok(())
     }
 
@@ -404,9 +422,9 @@ pub struct InitializePool<'info> {
     pub system_program: Program<'info, System>,
 }
 
-/// Step 2: Initialize LP mint and token vaults (separate transaction)
+/// Step 2: Initialize LP mint only (reduced stack usage)
 #[derive(Accounts)]
-pub struct InitializePoolVaults<'info> {
+pub struct InitializeLpMint<'info> {
     #[account(
         mut,
         seeds = [b"pool"],
@@ -414,9 +432,6 @@ pub struct InitializePoolVaults<'info> {
         constraint = !pool.initialized @ AmmError::AlreadyInitialized
     )]
     pub pool: Account<'info, LiquidityPool>,
-
-    pub doom_mint: Account<'info, Mint>,
-    pub life_mint: Account<'info, Mint>,
 
     #[account(
         init,
@@ -428,6 +443,24 @@ pub struct InitializePoolVaults<'info> {
     )]
     pub lp_mint: Account<'info, Mint>,
 
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+/// Step 3: Create DOOM vault
+#[derive(Accounts)]
+pub struct InitializeDoomVault<'info> {
+    #[account(
+        seeds = [b"pool"],
+        bump = pool.bump,
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    pub doom_mint: Account<'info, Mint>,
+
     #[account(
         init,
         payer = authority,
@@ -437,6 +470,24 @@ pub struct InitializePoolVaults<'info> {
         bump
     )]
     pub pool_doom: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+/// Step 4: Create LIFE vault
+#[derive(Accounts)]
+pub struct InitializeLifeVault<'info> {
+    #[account(
+        seeds = [b"pool"],
+        bump = pool.bump,
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    pub life_mint: Account<'info, Mint>,
 
     #[account(
         init,
@@ -453,7 +504,21 @@ pub struct InitializePoolVaults<'info> {
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
+}
+
+/// Step 5: Finalize pool
+#[derive(Accounts)]
+pub struct FinalizePool<'info> {
+    #[account(
+        mut,
+        seeds = [b"pool"],
+        bump = pool.bump,
+        constraint = !pool.initialized @ AmmError::AlreadyInitialized
+    )]
+    pub pool: Account<'info, LiquidityPool>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -628,4 +693,6 @@ pub enum AmmError {
     AlreadyInitialized,
     #[msg("Pool not initialized")]
     NotInitialized,
+    #[msg("Invalid mint address")]
+    InvalidMint,
 }

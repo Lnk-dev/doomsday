@@ -17,10 +17,29 @@ import * as path from 'path'
 import { createHash } from 'crypto'
 
 const PROGRAM_ID = new PublicKey('BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc')
-const RPC_URL = 'https://api.devnet.solana.com'
+
+// Try multiple RPC endpoints
+const RPC_ENDPOINTS = [
+  'https://api.devnet.solana.com',
+  'https://devnet.genesysgo.net',
+]
+
+async function getWorkingConnection(): Promise<Connection> {
+  for (const rpc of RPC_ENDPOINTS) {
+    try {
+      const conn = new Connection(rpc, 'confirmed')
+      await conn.getSlot()
+      console.log('Using RPC:', rpc)
+      return conn
+    } catch {
+      console.log('RPC failed:', rpc)
+    }
+  }
+  throw new Error('All RPC endpoints failed')
+}
 
 // Event parameters - short deadline for testing
-const EVENT_ID = 100n // High ID to avoid conflicts
+const EVENT_ID = BigInt(Date.now()) // Use timestamp as unique ID
 const TITLE = 'Quick Test Event'
 const DESCRIPTION = 'Short deadline event for testing resolution flow.'
 
@@ -51,7 +70,7 @@ async function main() {
   console.log('Event ID:', EVENT_ID.toString())
 
   // Connect to devnet
-  const connection = new Connection(RPC_URL, 'confirmed')
+  const connection = await getWorkingConnection()
 
   // Check if event already exists
   const existingEvent = await connection.getAccountInfo(eventPda)
@@ -60,10 +79,10 @@ async function main() {
     return
   }
 
-  // Calculate deadlines - very short for testing (2 minutes for betting, 5 minutes for resolution)
+  // Calculate deadlines - longer for testing (30 minutes for betting, 60 minutes for resolution)
   const now = Math.floor(Date.now() / 1000)
-  const deadline = now + 120 // 2 minutes from now
-  const resolutionDeadline = now + 300 // 5 minutes from now
+  const deadline = now + 1800 // 30 minutes from now
+  const resolutionDeadline = now + 3600 // 60 minutes from now
 
   console.log('Deadline:', new Date(deadline * 1000).toISOString(), '(2 minutes)')
   console.log('Resolution Deadline:', new Date(resolutionDeadline * 1000).toISOString(), '(5 minutes)')

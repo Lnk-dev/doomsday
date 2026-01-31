@@ -223,6 +223,9 @@ pub mod prediction_market {
             Outcome::Life => (event.life_pool, event.doom_pool),
         };
 
+        // Ensure winning pool is not zero (prevents division by zero)
+        require!(winning_pool > 0, PredictionError::InvalidWinningPool);
+
         let total_pool = winning_pool.checked_add(losing_pool).ok_or(PredictionError::Overflow)?;
 
         // Calculate user's share of the winnings
@@ -322,6 +325,40 @@ pub mod prediction_market {
 
         event.status = EventStatus::Cancelled;
         msg!("Event {} cancelled", event.event_id);
+        Ok(())
+    }
+
+    /// Initialize DOOM vault for an event
+    /// Must be called after create_event to set up token account for DOOM bets
+    pub fn initialize_doom_vault(ctx: Context<InitializeDoomVault>) -> Result<()> {
+        let event = &ctx.accounts.event;
+
+        // Verify the vault matches what's stored in the event
+        require!(
+            ctx.accounts.doom_vault.key() == event.doom_vault,
+            PredictionError::InvalidVault
+        );
+
+        msg!("DOOM vault initialized for event {}", event.event_id);
+        msg!("DOOM vault: {}", ctx.accounts.doom_vault.key());
+
+        Ok(())
+    }
+
+    /// Initialize LIFE vault for an event
+    /// Must be called after create_event to set up token account for LIFE bets
+    pub fn initialize_life_vault(ctx: Context<InitializeLifeVault>) -> Result<()> {
+        let event = &ctx.accounts.event;
+
+        // Verify the vault matches what's stored in the event
+        require!(
+            ctx.accounts.life_vault.key() == event.life_vault,
+            PredictionError::InvalidVault
+        );
+
+        msg!("LIFE vault initialized for event {}", event.event_id);
+        msg!("LIFE vault: {}", ctx.accounts.life_vault.key());
+
         Ok(())
     }
 
@@ -499,6 +536,72 @@ pub struct CreateEvent<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction()]
+pub struct InitializeDoomVault<'info> {
+    #[account(
+        seeds = [b"platform_config"],
+        bump = platform_config.bump
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+    #[account(
+        seeds = [b"event", event.event_id.to_le_bytes().as_ref()],
+        bump = event.bump
+    )]
+    pub event: Account<'info, PredictionEvent>,
+    /// DOOM token vault for this event
+    #[account(
+        init,
+        payer = payer,
+        token::mint = doom_mint,
+        token::authority = doom_vault,
+        seeds = [b"vault_doom", event.event_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub doom_vault: Account<'info, TokenAccount>,
+    #[account(
+        constraint = doom_mint.key() == platform_config.doom_mint @ PredictionError::InvalidMint
+    )]
+    pub doom_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction()]
+pub struct InitializeLifeVault<'info> {
+    #[account(
+        seeds = [b"platform_config"],
+        bump = platform_config.bump
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+    #[account(
+        seeds = [b"event", event.event_id.to_le_bytes().as_ref()],
+        bump = event.bump
+    )]
+    pub event: Account<'info, PredictionEvent>,
+    /// LIFE token vault for this event
+    #[account(
+        init,
+        payer = payer,
+        token::mint = life_mint,
+        token::authority = life_vault,
+        seeds = [b"vault_life", event.event_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub life_vault: Account<'info, TokenAccount>,
+    #[account(
+        constraint = life_mint.key() == platform_config.life_mint @ PredictionError::InvalidMint
+    )]
+    pub life_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct PlaceBet<'info> {
     #[account(
         mut,
@@ -528,7 +631,12 @@ pub struct PlaceBet<'info> {
     )]
     pub user_token_account: Box<Account<'info, TokenAccount>>,
     /// Event vault to deposit bet (DOOM or LIFE vault based on outcome)
-    #[account(mut)]
+    /// Must match one of the event's vaults and have correct mint
+    #[account(
+        mut,
+        constraint = (event_vault.key() == event.doom_vault || event_vault.key() == event.life_vault) @ PredictionError::InvalidVault,
+        constraint = (event_vault.mint == platform_config.doom_mint || event_vault.mint == platform_config.life_mint) @ PredictionError::InvalidMint
+    )]
     pub event_vault: Box<Account<'info, TokenAccount>>,
     #[account(mut)]
     pub user: Signer<'info>,
@@ -557,7 +665,8 @@ pub struct ResolveEvent<'info> {
 pub struct ClaimWinnings<'info> {
     #[account(
         seeds = [b"platform_config"],
-        bump = platform_config.bump
+        bump = platform_config.bump,
+        constraint = !platform_config.paused @ PredictionError::PlatformPaused
     )]
     pub platform_config: Box<Account<'info, PlatformConfig>>,
     #[account(
@@ -574,7 +683,12 @@ pub struct ClaimWinnings<'info> {
     )]
     pub user_bet: Box<Account<'info, UserBet>>,
     /// Event vault containing the winning pool
-    #[account(mut)]
+    /// Must match the winning outcome's vault
+    #[account(
+        mut,
+        constraint = (event_vault.key() == event.doom_vault || event_vault.key() == event.life_vault) @ PredictionError::InvalidVault,
+        constraint = (event_vault.mint == platform_config.doom_mint || event_vault.mint == platform_config.life_mint) @ PredictionError::InvalidMint
+    )]
     pub event_vault: Box<Account<'info, TokenAccount>>,
     /// User's token account to receive winnings
     #[account(
@@ -589,6 +703,12 @@ pub struct ClaimWinnings<'info> {
 #[derive(Accounts)]
 pub struct RefundBet<'info> {
     #[account(
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+        constraint = !platform_config.paused @ PredictionError::PlatformPaused
+    )]
+    pub platform_config: Box<Account<'info, PlatformConfig>>,
+    #[account(
         seeds = [b"event", event.event_id.to_le_bytes().as_ref()],
         bump = event.bump,
         constraint = event.status == EventStatus::Cancelled @ PredictionError::EventNotCancelled
@@ -602,7 +722,12 @@ pub struct RefundBet<'info> {
     )]
     pub user_bet: Box<Account<'info, UserBet>>,
     /// Event vault containing the bet amount
-    #[account(mut)]
+    /// Must match the user's bet outcome vault
+    #[account(
+        mut,
+        constraint = (event_vault.key() == event.doom_vault || event_vault.key() == event.life_vault) @ PredictionError::InvalidVault,
+        constraint = (event_vault.mint == platform_config.doom_mint || event_vault.mint == platform_config.life_mint) @ PredictionError::InvalidMint
+    )]
     pub event_vault: Box<Account<'info, TokenAccount>>,
     /// User's token account to receive refund
     #[account(
@@ -782,6 +907,8 @@ pub enum PredictionError {
     DidNotWin,
     #[msg("Event not cancelled")]
     EventNotCancelled,
+    #[msg("Invalid winning pool - cannot be zero")]
+    InvalidWinningPool,
     #[msg("Already refunded")]
     AlreadyRefunded,
 }

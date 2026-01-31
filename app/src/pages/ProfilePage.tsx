@@ -43,11 +43,13 @@ import {
 import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useWalletModal } from '@solana/wallet-adapter-react-ui'
 
 type ProfileTab = 'threads' | 'bets' | 'replies' | 'saved'
 
 export function ProfilePage() {
   const navigate = useNavigate()
+  const { setVisible: openWalletModal } = useWalletModal()
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
   const [showShareModal, setShowShareModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -239,7 +241,10 @@ export function ProfilePage() {
               <p className="text-[15px] font-semibold text-white">Connect wallet</p>
               <p className="text-[13px] text-[#777]">Save progress & earn tokens</p>
             </div>
-            <button className="px-4 py-2 rounded-xl bg-white text-black text-[14px] font-semibold">
+            <button
+              onClick={() => openWalletModal(true)}
+              className="px-4 py-2 rounded-xl bg-white text-black text-[14px] font-semibold"
+            >
               Connect
             </button>
           </div>

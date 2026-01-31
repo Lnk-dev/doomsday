@@ -9,6 +9,27 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { AppLayout } from './AppLayout'
 
+// Mock the useWallet hook to prevent Solana wallet adapter complexity
+vi.mock('@/hooks/useWallet', () => ({
+  useWallet: vi.fn(() => ({
+    connected: false,
+    connecting: false,
+    publicKey: null,
+    walletAddress: null,
+    solBalance: null,
+    doomBalance: null,
+    lifeBalance: null,
+    isConnecting: false,
+    connectionError: null,
+    wallets: [],
+    wallet: null,
+    select: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    refreshBalances: vi.fn(),
+  })),
+}))
+
 vi.mock('@/store', () => ({
   usePostsStore: vi.fn((selector) => {
     const state = { doomFeed: [], lifeFeed: [], posts: {} }
@@ -16,6 +37,14 @@ vi.mock('@/store', () => ({
   }),
   useEventsStore: vi.fn((selector) => {
     const state = { events: {} }
+    return selector(state)
+  }),
+  useUserStore: vi.fn((selector) => {
+    const state = {
+      author: { id: '1', username: 'testuser', displayName: 'Test User' },
+      isConnected: false,
+      walletAddress: null,
+    }
     return selector(state)
   }),
 }))
@@ -53,7 +82,7 @@ describe('AppLayout', () => {
   describe('rendering', () => {
     it('should render the main container', () => {
       renderWithRouter()
-      const container = document.querySelector('.flex.flex-col.min-h-screen')
+      const container = document.querySelector('.flex.min-h-screen')
       expect(container).toBeInTheDocument()
     })
 
@@ -62,9 +91,11 @@ describe('AppLayout', () => {
       expect(screen.getByRole('main')).toBeInTheDocument()
     })
 
-    it('should render the BottomNav', () => {
+    it('should render navigation elements', () => {
       renderWithRouter()
-      expect(screen.getByRole('navigation')).toBeInTheDocument()
+      // Both BottomNav and DesktopSidebar have nav elements
+      const navElements = screen.getAllByRole('navigation')
+      expect(navElements.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -96,9 +127,9 @@ describe('AppLayout', () => {
   })
 
   describe('styling', () => {
-    it('should have flex column layout', () => {
+    it('should have flex layout', () => {
       renderWithRouter()
-      const container = document.querySelector('.flex.flex-col')
+      const container = document.querySelector('.flex.min-h-screen')
       expect(container).toBeInTheDocument()
     })
 

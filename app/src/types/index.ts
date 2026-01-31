@@ -112,6 +112,74 @@ export type EventCategory =
 export type EventStatus = 'active' | 'occurred' | 'expired'
 
 /**
+ * Quality tier based on event quality score
+ */
+export type QualityTier = 'bronze' | 'silver' | 'gold' | 'platinum'
+
+/**
+ * Resolution type determines how an event is resolved
+ */
+export type ResolutionType = 'automatic' | 'oracle' | 'multi_sig' | 'community'
+
+/**
+ * Condition type for resolution criteria
+ */
+export type ConditionType = 'threshold' | 'occurrence' | 'geographic'
+
+/**
+ * Operator for threshold conditions
+ */
+export type ThresholdOperator = 'gte' | 'lte' | 'eq' | 'between'
+
+/**
+ * Source type for verification sources
+ */
+export type VerificationSourceType = 'government' | 'academic' | 'news' | 'api' | 'official'
+
+/**
+ * Resolution criterion defines a single condition for event resolution
+ */
+export interface ResolutionCriterion {
+  id?: ID
+  conditionType: ConditionType
+  description: string
+  metric?: string
+  operator?: ThresholdOperator
+  thresholdValue?: number
+  unit?: string
+  geographicScope?: string
+}
+
+/**
+ * Verification source for checking event resolution
+ */
+export interface VerificationSource {
+  id?: ID
+  isPrimary: boolean
+  name: string
+  url?: string
+  sourceType?: VerificationSourceType
+}
+
+/**
+ * Event deadlines for the event lifecycle
+ */
+export interface EventDeadlines {
+  bettingDeadline: Timestamp
+  eventDeadline: Timestamp
+  resolutionDeadline: Timestamp
+  disputeWindowEnd: Timestamp
+}
+
+/**
+ * Creator stake on their own event
+ */
+export interface CreatorStake {
+  amount: number
+  outcome: 'doom' | 'life'
+}
+
+/**
  * Prediction event - a doom scenario with a countdown
  */
 export interface PredictionEvent {
@@ -134,6 +202,57 @@ export interface PredictionEvent {
   onChainEventId?: number
   /** On-chain PDA address (if synced from blockchain) */
   onChainPDA?: string
+  /** Quality score (0-100) */
+  qualityScore?: number
+  /** Quality tier based on score */
+  qualityTier?: QualityTier
+  /** Resolution type */
+  resolutionType?: ResolutionType
+  /** Resolution criteria */
+  resolutionCriteria?: ResolutionCriterion[]
+  /** Verification sources */
+  verificationSources?: VerificationSource[]
+  /** Event deadlines */
+  deadlines?: EventDeadlines
+  /** Creator stake */
+  creatorStake?: CreatorStake
+  /** Proposed outcome (if resolved) */
+  proposedOutcome?: 'doom' | 'life'
+  /** When resolution was proposed */
+  proposedAt?: Timestamp
+}
+
+/**
+ * Dispute status
+ */
+export type DisputeStatus = 'open' | 'under_review' | 'escalated' | 'upheld' | 'rejected'
+
+/**
+ * Dispute against an event resolution
+ */
+export interface Dispute {
+  id: ID
+  eventId: ID
+  disputer: Author
+  stakeAmount: number
+  reason: string
+  evidence: string[]
+  status: DisputeStatus
+  outcome?: 'original_stands' | 'reversed' | 'cancelled'
+  createdAt: Timestamp
+  resolvedAt?: Timestamp
+}
+
+/**
+ * Resolution evidence submitted for disputes
+ */
+export interface ResolutionEvidence {
+  id: ID
+  eventId: ID
+  submittedBy: ID
+  evidenceType: 'url' | 'screenshot' | 'api_response'
+  content: string
+  createdAt: Timestamp
 }
 
 /**

@@ -2,13 +2,46 @@
  * Database Schema - Drizzle ORM
  */
 
-import { pgTable, text, timestamp, integer, boolean, pgEnum, uuid, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, boolean, pgEnum, uuid, index, decimal } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 export const postVariantEnum = pgEnum('post_variant', ['doom', 'life'])
 export const eventStatusEnum = pgEnum('event_status', ['active', 'resolved_doom', 'resolved_life', 'cancelled'])
 export const betOutcomeEnum = pgEnum('bet_outcome', ['doom', 'life'])
 export const adminRoleEnum = pgEnum('admin_role', ['super_admin', 'moderator', 'analyst', 'support'])
+
+// Event resolution and quality enums
+export const resolutionTypeEnum = pgEnum('resolution_type', [
+  'automatic',  // Has API data source
+  'oracle',     // Default, resolved by platform oracle
+  'multi_sig',  // High stakes, requires multiple signers
+  'community',  // Community vote for disputed events
+])
+
+export const qualityTierEnum = pgEnum('quality_tier', [
+  'bronze',    // 0-39 score
+  'silver',    // 40-59 score
+  'gold',      // 60-79 score
+  'platinum',  // 80-100 score
+])
+
+export const disputeStatusEnum = pgEnum('dispute_status', [
+  'open',          // Newly filed
+  'under_review',  // Admin reviewing
+  'escalated',     // Escalated to community vote
+  'upheld',        // Dispute accepted, resolution reversed
+  'rejected',      // Dispute rejected
+])
+
+export const eventCategoryEnum = pgEnum('event_category', [
+  'technology',
+  'economic',
+  'climate',
+  'war',
+  'natural',
+  'social',
+  'other',
+])
 
 // Audit log enums
 export const auditCategoryEnum = pgEnum('audit_category', [
@@ -190,13 +223,22 @@ export const events = pgTable('events', {
   creatorId: uuid('creator_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
+  category: eventCategoryEnum('category').default('other'),
   status: eventStatusEnum('status').default('active'),
   totalDoomStake: integer('total_doom_stake').default(0),
   totalLifeStake: integer('total_life_stake').default(0),
+  // Quality scoring
+  qualityScore: integer('quality_score').default(0),
+  qualityTier: qualityTierEnum('quality_tier').default('bronze'),
+  // Resolution configuration
+  resolutionType: resolutionTypeEnum('resolution_type').default('oracle'),
+  proposedOutcome: betOutcomeEnum('proposed_outcome'),
+  proposedAt: timestamp('proposed_at'),
+  // Legacy field - kept for backwards compatibility
   endsAt: timestamp('ends_at').notNull(),
   resolvedAt: timestamp('resolved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (t) => [index('events_status_idx').on(t.status)])
+}, (t) => [index('events_status_idx').on(t.status), index('events_category_idx').on(t.category)])
 
 export const bets = pgTable('bets', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -208,6 +250,81 @@ export const bets = pgTable('bets', {
   claimed: boolean('claimed').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (t) => [index('bets_event_idx').on(t.eventId)])
+
+// Resolution criteria for events - defines how an event is resolved
+export const resolutionCriteria = pgTable('resolution_criteria', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  conditionType: text('condition_type').notNull(), // 'threshold', 'occurrence', 'geographic'
+  description: text('description').notNull(),
+  metric: text('metric'), // e.g., 'temperature', 'price', 'deaths'
+  operator: text('operator'), // 'gte', 'lte', 'eq', 'between'
+  thresholdValue: decimal('threshold_value', { precision: 18, scale: 6 }),
+  unit: text('unit'), // e.g., 'celsius', 'USD', 'people'
+  geographicScope: text('geographic_scope'), // e.g., 'global', 'USA', 'California'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('resolution_criteria_event_idx').on(t.eventId)])
+
+// Verification sources for events - where to check if event occurred
+export const verificationSources = pgTable('verification_sources', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  isPrimary: boolean('is_primary').notNull().default(false),
+  name: text('name').notNull(),
+  url: text('url'),
+  sourceType: text('source_type'), // 'government', 'academic', 'news', 'api', 'official'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('verification_sources_event_idx').on(t.eventId)])
+
+// Event deadlines - separate timeline management
+export const eventDeadlines = pgTable('event_deadlines', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }).unique(),
+  bettingDeadline: timestamp('betting_deadline').notNull(),
+  eventDeadline: timestamp('event_deadline').notNull(),
+  resolutionDeadline: timestamp('resolution_deadline').notNull(),
+  disputeWindowEnd: timestamp('dispute_window_end').notNull(),
+}, (t) => [index('event_deadlines_event_idx').on(t.eventId)])
+
+// Creator stakes - creator skin in the game
+export const creatorStakes = pgTable('creator_stakes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }).unique(),
+  creatorId: uuid('creator_id').notNull().references(() => users.id),
+  amount: integer('amount').notNull(),
+  outcome: betOutcomeEnum('outcome').notNull(), // creator's position
+  refunded: boolean('refunded').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('creator_stakes_event_idx').on(t.eventId)])
+
+// Disputes against event resolutions
+export const disputes = pgTable('disputes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id),
+  disputerId: uuid('disputer_id').notNull().references(() => users.id),
+  stakeAmount: integer('stake_amount').notNull(), // DOOM staked to dispute
+  reason: text('reason').notNull(),
+  evidence: text('evidence'), // JSON array of URLs
+  status: disputeStatusEnum('status').notNull().default('open'),
+  outcome: text('outcome'), // 'original_stands', 'reversed', 'cancelled'
+  resolvedBy: uuid('resolved_by').references(() => adminUsers.id),
+  resolvedAt: timestamp('resolved_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [
+  index('disputes_event_idx').on(t.eventId),
+  index('disputes_disputer_idx').on(t.disputerId),
+  index('disputes_status_idx').on(t.status),
+])
+
+// Evidence submitted for event resolutions
+export const resolutionEvidence = pgTable('resolution_evidence', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  eventId: uuid('event_id').notNull().references(() => events.id),
+  submittedBy: uuid('submitted_by').notNull().references(() => users.id),
+  evidenceType: text('evidence_type').notNull(), // 'url', 'screenshot', 'api_response'
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (t) => [index('resolution_evidence_event_idx').on(t.eventId)])
 
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts), comments: many(comments), likes: many(likes),
@@ -594,3 +711,11 @@ export type ModerationLog = typeof moderationLogs.$inferSelect
 export type VerificationRequest = typeof verificationRequests.$inferSelect
 export type Conversation = typeof conversations.$inferSelect
 export type Message = typeof messages.$inferSelect
+
+// New types for enhanced event system
+export type ResolutionCriterion = typeof resolutionCriteria.$inferSelect
+export type VerificationSource = typeof verificationSources.$inferSelect
+export type EventDeadline = typeof eventDeadlines.$inferSelect
+export type CreatorStake = typeof creatorStakes.$inferSelect
+export type Dispute = typeof disputes.$inferSelect
+export type ResolutionEvidenceRecord = typeof resolutionEvidence.$inferSelect

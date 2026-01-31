@@ -4,7 +4,8 @@
  *
  * User profile displaying stats, balances, and post history.
  * Features:
- * - Token balances ($DOOM, $LIFE)
+ * - Wallet address display with copy
+ * - Real token balances ($DOOM, $LIFE, SOL)
  * - Days living counter
  * - User's posts
  * - Saved/bookmarked posts
@@ -31,6 +32,11 @@ import {
   Trophy,
   BarChart3,
   MessageCircle,
+  Wallet,
+  Copy,
+  Check,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react'
 import {
   useUserStore,
@@ -44,6 +50,8 @@ import { formatRelativeTime, formatCountdown, formatNumber } from '@/lib/utils'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWalletModal } from '@solana/wallet-adapter-react-ui'
+import { useWallet } from '@/hooks/useWallet'
+import { useTokenBalance } from '@/hooks/useTokenBalance'
 
 type ProfileTab = 'threads' | 'bets' | 'replies' | 'saved'
 
@@ -53,6 +61,17 @@ export function ProfilePage() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('threads')
   const [showShareModal, setShowShareModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // Wallet and token balances
+  const { connected, address, shortenedAddress, formattedSolBalance } = useWallet()
+  const {
+    formattedDoomBalance,
+    formattedLifeBalance,
+    isLoading: isLoadingBalances,
+    error: balanceError,
+    refresh: refreshBalances,
+  } = useTokenBalance()
 
   // Streak store
   const checkStreak = useStreaksStore((state) => state.checkStreak)
@@ -71,11 +90,11 @@ export function ProfilePage() {
   const author = useUserStore((state) => state.author)
   const displayName = useUserStore((state) => state.displayName)
   const bio = useUserStore((state) => state.bio)
-  const doomBalance = useUserStore((state) => state.doomBalance)
-  const lifeBalance = useUserStore((state) => state.lifeBalance)
+  const walletAddress = useUserStore((state) => state.walletAddress)
   const daysLiving = useUserStore((state) => state.daysLiving)
-  const lifePostsCount = useUserStore((state) => state.lifePosts)
   const isConnected = useUserStore((state) => state.isConnected)
+  const isLoading = useUserStore((state) => state.isLoading)
+  const authError = useUserStore((state) => state.authError)
   const userId = useUserStore((state) => state.userId)
   const addLife = useUserStore((state) => state.addLife)
 
@@ -112,6 +131,20 @@ export function ProfilePage() {
   const addBookmark = useBookmarksStore((state) => state.addBookmark)
   const removeBookmark = useBookmarksStore((state) => state.removeBookmark)
 
+  // Copy wallet address to clipboard
+  const copyAddress = useCallback(async () => {
+    const addressToCopy = address || walletAddress
+    if (!addressToCopy) return
+
+    try {
+      await navigator.clipboard.writeText(addressToCopy)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy address:', err)
+    }
+  }, [address, walletAddress])
+
   // Compute user's posts
   const userPosts = useMemo(() => {
     return Object.values(allPosts)
@@ -145,9 +178,9 @@ export function ProfilePage() {
   // Bookmark toggle handler
   const handleBookmarkToggle = useCallback((postId: string) => {
     if (isBookmarked(postId)) {
-      removeBookmark(postId, userId)
+      removeBookmark(postId, userId || '')
     } else {
-      addBookmark(postId, userId)
+      addBookmark(postId, userId || '')
     }
   }, [isBookmarked, addBookmark, removeBookmark, userId])
 
@@ -157,6 +190,11 @@ export function ProfilePage() {
     { id: 'replies', label: 'Replies' },
     { id: 'saved', label: `Saved (${bookmarkedPosts.length})` },
   ]
+
+  // Display shortened address (prefer connected wallet, fall back to stored)
+  const displayShortenedAddress = shortenedAddress || (walletAddress
+    ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+    : null)
 
   return (
     <div className="flex flex-col min-h-full">
@@ -183,55 +221,97 @@ export function ProfilePage() {
         }
       />
 
+      {/* Loading state */}
+      {isLoading && (
+        <div className="px-4 py-8 flex flex-col items-center justify-center">
+          <Loader2 size={32} className="text-[#1d9bf0] animate-spin mb-2" />
+          <p className="text-[14px] text-[#777]">Connecting...</p>
+        </div>
+      )}
+
+      {/* Auth error banner */}
+      {authError && (
+        <div className="mx-4 mb-4 p-3 rounded-xl bg-[#ff304020] border border-[#ff304040]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-[#ff3040]" />
+            <p className="text-[13px] text-[#ff3040] flex-1">{authError}</p>
+            <button
+              onClick={() => openWalletModal(true)}
+              className="text-[12px] text-[#ff3040] font-semibold underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Profile header */}
-      <div className="px-4 py-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h2 className="text-[22px] font-bold text-white">
-              {displayName || author.username}
-            </h2>
-            <p className="text-[15px] text-[#777]">@{author.username}</p>
+      {!isLoading && (
+        <div className="px-4 py-4">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-[22px] font-bold text-white">
+                {displayName || author.username}
+              </h2>
+              <p className="text-[15px] text-[#777]">@{author.username}</p>
+
+              {/* Wallet address display */}
+              {connected && displayShortenedAddress && (
+                <button
+                  onClick={copyAddress}
+                  className="flex items-center gap-2 mt-2 text-[13px] text-[#1d9bf0] hover:text-[#1a8cd8] transition-colors"
+                >
+                  <Wallet size={14} />
+                  <span className="font-mono">{displayShortenedAddress}</span>
+                  {copied ? (
+                    <Check size={14} className="text-[#00ba7c]" />
+                  ) : (
+                    <Copy size={14} />
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="w-16 h-16 rounded-full bg-[#333] flex items-center justify-center overflow-hidden">
+              {author.avatar ? (
+                <img src={author.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl text-[#777]">{author.username[0]?.toUpperCase()}</span>
+              )}
+            </div>
           </div>
-          <div className="w-16 h-16 rounded-full bg-[#333] flex items-center justify-center overflow-hidden">
-            {author.avatar ? (
-              <img src={author.avatar} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xl text-[#777]">{author.username[0]?.toUpperCase()}</span>
-            )}
+
+          <p className="text-[15px] text-white mt-3">
+            {bio || 'Watching the world. Waiting.'}
+          </p>
+
+          <div className="flex items-center gap-4 mt-3 text-[15px] text-[#777]">
+            <span>0 followers</span>
+            <span>·</span>
+            <span>{userPosts.length} posts</span>
+            <span>·</span>
+            <StreakDisplay compact />
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
+            >
+              Edit profile
+            </button>
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
+            >
+              Share profile
+            </button>
           </div>
         </div>
-
-        <p className="text-[15px] text-white mt-3">
-          {bio || 'Watching the world. Waiting.'}
-        </p>
-
-        <div className="flex items-center gap-4 mt-3 text-[15px] text-[#777]">
-          <span>0 followers</span>
-          <span>·</span>
-          <span>{userPosts.length} posts</span>
-          <span>·</span>
-          <StreakDisplay compact />
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-2 mt-4">
-          <button
-            onClick={() => setShowEditModal(true)}
-            className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
-          >
-            Edit profile
-          </button>
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="flex-1 py-2 rounded-xl border border-[#333] text-[15px] font-semibold text-white hover:bg-[#111] transition-colors"
-          >
-            Share profile
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Wallet connect banner (show only if not connected) */}
-      {!isConnected && (
+      {!isConnected && !isLoading && (
         <div className="mx-4 mb-4 p-4 rounded-2xl bg-[#1a1a1a] border border-[#333]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#333] flex items-center justify-center">
@@ -251,141 +331,189 @@ export function ProfilePage() {
         </div>
       )}
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-4 gap-px mx-4 mb-4 rounded-2xl overflow-hidden bg-[#333]">
-        <div className="bg-black p-3 text-center">
-          <p className="text-[18px] font-bold text-[#ff3040]">{doomBalance}</p>
-          <p className="text-[11px] text-[#777]">$DOOM</p>
+      {/* Stats grid with real balances */}
+      {!isLoading && (
+        <div className="mx-4 mb-4">
+          {/* Balance error banner */}
+          {balanceError && (
+            <div className="mb-2 p-2 rounded-lg bg-[#ff304020] border border-[#ff304040]">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-[#ff3040]" />
+                <p className="text-[12px] text-[#ff3040] flex-1">Failed to load balances</p>
+                <button
+                  onClick={refreshBalances}
+                  className="p-1 hover:bg-[#ff304030] rounded"
+                >
+                  <RefreshCw size={14} className="text-[#ff3040]" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-4 gap-px rounded-2xl overflow-hidden bg-[#333]">
+            <div className="bg-black p-3 text-center">
+              {isLoadingBalances ? (
+                <Loader2 size={18} className="text-[#ff3040] animate-spin mx-auto" />
+              ) : (
+                <p className="text-[18px] font-bold text-[#ff3040]">
+                  {connected ? formattedDoomBalance : '0'}
+                </p>
+              )}
+              <p className="text-[11px] text-[#777]">$DOOM</p>
+            </div>
+            <div className="bg-black p-3 text-center">
+              {isLoadingBalances ? (
+                <Loader2 size={18} className="text-[#00ba7c] animate-spin mx-auto" />
+              ) : (
+                <p className="text-[18px] font-bold text-[#00ba7c]">
+                  {connected ? formattedLifeBalance : '0'}
+                </p>
+              )}
+              <p className="text-[11px] text-[#777]">$LIFE</p>
+            </div>
+            <div className="bg-black p-3 text-center">
+              {isLoadingBalances ? (
+                <Loader2 size={18} className="text-[#9945FF] animate-spin mx-auto" />
+              ) : (
+                <p className="text-[18px] font-bold text-[#9945FF]">
+                  {connected && formattedSolBalance ? formattedSolBalance : '0'}
+                </p>
+              )}
+              <p className="text-[11px] text-[#777]">SOL</p>
+            </div>
+            <div className="bg-black p-3 text-center">
+              <p className="text-[18px] font-bold text-white">{daysLiving}</p>
+              <p className="text-[11px] text-[#777]">Days</p>
+            </div>
+          </div>
         </div>
-        <div className="bg-black p-3 text-center">
-          <p className="text-[18px] font-bold text-[#00ba7c]">{lifeBalance}</p>
-          <p className="text-[11px] text-[#777]">$LIFE</p>
-        </div>
-        <div className="bg-black p-3 text-center">
-          <p className="text-[18px] font-bold text-white">{daysLiving}</p>
-          <p className="text-[11px] text-[#777]">Days</p>
-        </div>
-        <div className="bg-black p-3 text-center">
-          <p className="text-[18px] font-bold text-white">{lifePostsCount}</p>
-          <p className="text-[11px] text-[#777]">Life Posts</p>
-        </div>
-      </div>
+      )}
 
       {/* Life Timeline button */}
-      <button
-        onClick={() => navigate('/timeline')}
-        className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#00ba7c10] border border-[#00ba7c30] hover:bg-[#00ba7c20] transition-colors"
-      >
-        <div className="w-10 h-10 rounded-full bg-[#00ba7c20] flex items-center justify-center">
-          <Heart size={20} className="text-[#00ba7c]" fill="#00ba7c" />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-[14px] font-semibold text-white">Life Timeline</p>
-          <p className="text-[12px] text-[#00ba7c]">{daysLiving} days living</p>
-        </div>
-        <ChevronRight size={20} className="text-[#00ba7c]" />
-      </button>
+      {!isLoading && (
+        <button
+          onClick={() => navigate('/timeline')}
+          className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#00ba7c10] border border-[#00ba7c30] hover:bg-[#00ba7c20] transition-colors"
+        >
+          <div className="w-10 h-10 rounded-full bg-[#00ba7c20] flex items-center justify-center">
+            <Heart size={20} className="text-[#00ba7c]" fill="#00ba7c" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-semibold text-white">Life Timeline</p>
+            <p className="text-[12px] text-[#00ba7c]">{daysLiving} days living</p>
+          </div>
+          <ChevronRight size={20} className="text-[#00ba7c]" />
+        </button>
+      )}
 
       {/* Leaderboard button */}
-      <button
-        onClick={() => navigate('/leaderboard')}
-        className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#ff6b3510] border border-[#ff6b3530] hover:bg-[#ff6b3520] transition-colors"
-      >
-        <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
-          <Trophy size={20} className="text-[#ff6b35]" />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-[14px] font-semibold text-white">Leaderboard</p>
-          <p className="text-[12px] text-[#ff6b35]">View top doomers</p>
-        </div>
-        <ChevronRight size={20} className="text-[#ff6b35]" />
-      </button>
+      {!isLoading && (
+        <button
+          onClick={() => navigate('/leaderboard')}
+          className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-[#ff6b3510] border border-[#ff6b3530] hover:bg-[#ff6b3520] transition-colors"
+        >
+          <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
+            <Trophy size={20} className="text-[#ff6b35]" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-semibold text-white">Leaderboard</p>
+            <p className="text-[12px] text-[#ff6b35]">View top doomers</p>
+          </div>
+          <ChevronRight size={20} className="text-[#ff6b35]" />
+        </button>
+      )}
 
       {/* Analytics button */}
-      <button
-        onClick={() => navigate('/analytics')}
-        className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#1d9bf010] border border-[#1d9bf030] hover:bg-[#1d9bf020] transition-colors"
-      >
-        <div className="w-10 h-10 rounded-full bg-[#1d9bf020] flex items-center justify-center">
-          <BarChart3 size={20} className="text-[#1d9bf0]" />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-[14px] font-semibold text-white">Analytics</p>
-          <p className="text-[12px] text-[#1d9bf0]">Posts, bets & token insights</p>
-        </div>
-        <ChevronRight size={20} className="text-[#1d9bf0]" />
-      </button>
+      {!isLoading && (
+        <button
+          onClick={() => navigate('/analytics')}
+          className="mx-4 mb-4 flex items-center gap-3 p-3 rounded-xl bg-[#1d9bf010] border border-[#1d9bf030] hover:bg-[#1d9bf020] transition-colors"
+        >
+          <div className="w-10 h-10 rounded-full bg-[#1d9bf020] flex items-center justify-center">
+            <BarChart3 size={20} className="text-[#1d9bf0]" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-semibold text-white">Analytics</p>
+            <p className="text-[12px] text-[#1d9bf0]">Posts, bets & token insights</p>
+          </div>
+          <ChevronRight size={20} className="text-[#1d9bf0]" />
+        </button>
+      )}
 
       {/* Streak Card */}
-      <div className="mx-4 mb-4 p-4 rounded-2xl bg-[#1a1a1a] border border-[#333]">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
-            <Flame size={20} className="text-[#ff6b35]" />
-          </div>
-          <div className="flex-1">
-            <p className="text-[15px] font-semibold text-white">Daily Streak</p>
-            <p className="text-[12px] text-[#777]">
-              {atRisk ? 'At risk - post today!' : 'Post daily to maintain'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 mb-3">
-          <div className="flex-1 text-center">
-            <p className="text-[24px] font-bold text-[#ff6b35]">{currentStreak}</p>
-            <p className="text-[11px] text-[#777]">Current</p>
-          </div>
-          <div className="w-px h-10 bg-[#333]" />
-          <div className="flex-1 text-center">
-            <p className="text-[24px] font-bold text-white">{longestStreak}</p>
-            <p className="text-[11px] text-[#777]">Best</p>
-          </div>
-        </div>
-        {nextMilestone && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[12px] text-[#777]">
-                Next: {nextMilestone.name} ({nextMilestone.days} days)
-              </span>
-              <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.bonus} $LIFE</span>
+      {!isLoading && (
+        <div className="mx-4 mb-4 p-4 rounded-2xl bg-[#1a1a1a] border border-[#333]">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-[#ff6b3520] flex items-center justify-center">
+              <Flame size={20} className="text-[#ff6b35]" />
             </div>
-            <div className="h-2 bg-[#333] rounded-full overflow-hidden">
-              <div
-                className="h-full bg-[#ff6b35] transition-all"
-                style={{ width: `${progressToNext}%` }}
-              />
+            <div className="flex-1">
+              <p className="text-[15px] font-semibold text-white">Daily Streak</p>
+              <p className="text-[12px] text-[#777]">
+                {atRisk ? 'At risk - post today!' : 'Post daily to maintain'}
+              </p>
             </div>
           </div>
-        )}
-        {claimableMilestones.length > 0 && (
-          <button
-            onClick={handleClaimRewards}
-            className="w-full py-2 rounded-xl bg-[#ff6b35] text-white text-[14px] font-semibold flex items-center justify-center gap-2"
-          >
-            <Award size={16} />
-            Claim {claimableMilestones.length} Reward{claimableMilestones.length > 1 ? 's' : ''}
-          </button>
-        )}
-      </div>
+          <div className="flex items-center gap-4 mb-3">
+            <div className="flex-1 text-center">
+              <p className="text-[24px] font-bold text-[#ff6b35]">{currentStreak}</p>
+              <p className="text-[11px] text-[#777]">Current</p>
+            </div>
+            <div className="w-px h-10 bg-[#333]" />
+            <div className="flex-1 text-center">
+              <p className="text-[24px] font-bold text-white">{longestStreak}</p>
+              <p className="text-[11px] text-[#777]">Best</p>
+            </div>
+          </div>
+          {nextMilestone && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[12px] text-[#777]">
+                  Next: {nextMilestone.name} ({nextMilestone.days} days)
+                </span>
+                <span className="text-[12px] text-[#ff6b35]">+{nextMilestone.bonus} $LIFE</span>
+              </div>
+              <div className="h-2 bg-[#333] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#ff6b35] transition-all"
+                  style={{ width: `${progressToNext}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {claimableMilestones.length > 0 && (
+            <button
+              onClick={handleClaimRewards}
+              className="w-full py-2 rounded-xl bg-[#ff6b35] text-white text-[14px] font-semibold flex items-center justify-center gap-2"
+            >
+              <Award size={16} />
+              Claim {claimableMilestones.length} Reward{claimableMilestones.length > 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
-      <div className="flex border-b border-[#333]">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-3 text-[15px] font-semibold transition-colors ${
-              activeTab === tab.id
-                ? 'text-white border-b-2 border-white'
-                : 'text-[#777]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {!isLoading && (
+        <div className="flex border-b border-[#333]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 py-3 text-[15px] font-semibold transition-colors ${
+                activeTab === tab.id
+                  ? 'text-white border-b-2 border-white'
+                  : 'text-[#777]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab content */}
-      {activeTab === 'threads' && (
+      {!isLoading && activeTab === 'threads' && (
         userPosts.length > 0 ? (
           <div className="divide-y divide-[#333]">
             {userPosts.map((post) => (
@@ -398,7 +526,7 @@ export function ProfilePage() {
                 likes={post.likes}
                 replies={post.replies}
                 variant={post.variant}
-                isLiked={post.likedBy.includes(userId)}
+                isLiked={post.likedBy.includes(userId || '')}
                 isBookmarked={isBookmarked(post.id)}
                 onClick={() => navigate(`/post/${post.id}`)}
                 onBookmark={() => handleBookmarkToggle(post.id)}
@@ -418,7 +546,7 @@ export function ProfilePage() {
         )
       )}
 
-      {activeTab === 'bets' && (
+      {!isLoading && activeTab === 'bets' && (
         userBets.length > 0 ? (
           <div className="divide-y divide-[#333]">
             {userBets.map((bet) => {
@@ -512,7 +640,7 @@ export function ProfilePage() {
         )
       )}
 
-      {activeTab === 'replies' && (
+      {!isLoading && activeTab === 'replies' && (
         <div className="flex-1 flex flex-col items-center justify-center py-16 px-8">
           <p className="text-[15px] text-[#777] text-center">
             No replies yet.
@@ -520,7 +648,7 @@ export function ProfilePage() {
         </div>
       )}
 
-      {activeTab === 'saved' && (
+      {!isLoading && activeTab === 'saved' && (
         bookmarkedPosts.length > 0 ? (
           <div className="divide-y divide-[#333]">
             {bookmarkedPosts.map((post) => (
@@ -540,7 +668,7 @@ export function ProfilePage() {
                   likes={post.likes}
                   replies={post.replies}
                   variant={post.variant}
-                  isLiked={post.likedBy.includes(userId)}
+                  isLiked={post.likedBy.includes(userId || '')}
                   isBookmarked={true}
                   onClick={() => navigate(`/post/${post.id}`)}
                   onBookmark={() => handleBookmarkToggle(post.id)}
@@ -567,8 +695,8 @@ export function ProfilePage() {
         <ProfileShareModal
           profile={author}
           stats={{
-            doomBalance,
-            lifeBalance,
+            doomBalance: parseInt(formattedDoomBalance) || 0,
+            lifeBalance: parseInt(formattedLifeBalance) || 0,
             daysLiving,
             postsCount: userPosts.length,
           }}

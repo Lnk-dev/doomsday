@@ -41,4 +41,7 @@ declare global {
   interface WindowEventMap {
     beforeinstallprompt: BeforeInstallPromptEvent
   }
+  interface Window {
+    Buffer: typeof import('buffer').Buffer
+  }
 }

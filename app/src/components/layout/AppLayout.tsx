@@ -11,6 +11,7 @@
 
 import { Outlet } from 'react-router-dom'
 import { BottomNav } from './BottomNav'
+import { DesktopSidebar } from './DesktopSidebar'
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { useWallet } from '@/hooks/useWallet'
 
@@ -23,7 +24,7 @@ function WalletSync() {
 
 export function AppLayout() {
   return (
-    <div className="flex flex-col min-h-screen bg-black">
+    <div className="flex min-h-screen bg-black">
       {/* Sync wallet state */}
       <WalletSync />
 
@@ -32,12 +33,17 @@ export function AppLayout() {
         Skip to main content
       </a>
 
-      {/* Main content area with bottom padding for nav */}
-      <main id="main-content" className="flex-1 pb-16 overflow-y-auto" tabIndex={-1}>
-        <Outlet />
-      </main>
+      {/* Desktop sidebar - visible on lg+ */}
+      <DesktopSidebar />
 
-      {/* Fixed bottom navigation */}
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        <main id="main-content" className="flex-1 pb-16 lg:pb-0 overflow-y-auto" tabIndex={-1}>
+          <Outlet />
+        </main>
+      </div>
+
+      {/* Fixed bottom navigation - mobile only */}
       <BottomNav />
 
       {/* Global toast notifications */}

@@ -18,7 +18,26 @@ import * as path from 'path'
 import { createHash } from 'crypto'
 
 const PROGRAM_ID = new PublicKey('BMmGykphijTgvB7WMim9UVqi9976iibKf6uYAiGXC7Mc')
-const RPC_URL = 'https://api.devnet.solana.com'
+
+// Try multiple RPC endpoints
+const RPC_ENDPOINTS = [
+  'https://api.devnet.solana.com',
+  'https://devnet.genesysgo.net',
+]
+
+async function getWorkingConnection(): Promise<Connection> {
+  for (const rpc of RPC_ENDPOINTS) {
+    try {
+      const conn = new Connection(rpc, 'confirmed')
+      await conn.getSlot()
+      console.log('Using RPC:', rpc)
+      return conn
+    } catch {
+      console.log('RPC failed:', rpc)
+    }
+  }
+  throw new Error('All RPC endpoints failed')
+}
 
 // Token mints (from devnet deployment)
 const DOOM_MINT = new PublicKey('9Dc8sELJerfzPfk9DMP5vahLFxvr6rzn7PB8E6EK4Ah5')
@@ -45,7 +64,7 @@ async function main() {
   console.log('Bump:', bump)
 
   // Connect to devnet
-  const connection = new Connection(RPC_URL, 'confirmed')
+  const connection = await getWorkingConnection()
 
   // Check current account size
   const accountInfo = await connection.getAccountInfo(platformConfig)

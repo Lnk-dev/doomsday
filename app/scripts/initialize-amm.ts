@@ -24,8 +24,27 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { createHash } from 'crypto'
 
-const AMM_PROGRAM_ID = new PublicKey('7w8ZdJZYBGtv8bZYo2sua6qjphwLVSqij2ebcBcsdtuF')
-const RPC_URL = 'https://api.devnet.solana.com'
+const AMM_PROGRAM_ID = new PublicKey('HfkzCbxzH18DZaBE1gCBL6BVWfjWfz7nuBR2DP1X1RqJ')
+
+// Try multiple RPC endpoints
+const RPC_ENDPOINTS = [
+  'https://api.devnet.solana.com',
+  'https://devnet.genesysgo.net',
+]
+
+async function getWorkingConnection(): Promise<Connection> {
+  for (const rpc of RPC_ENDPOINTS) {
+    try {
+      const conn = new Connection(rpc, 'confirmed')
+      await conn.getSlot()
+      console.log('Using RPC:', rpc)
+      return conn
+    } catch {
+      console.log('RPC failed:', rpc)
+    }
+  }
+  throw new Error('All RPC endpoints failed')
+}
 
 // Token mints from config
 const DOOM_MINT = new PublicKey('9Dc8sELJerfzPfk9DMP5vahLFxvr6rzn7PB8E6EK4Ah5')
@@ -91,7 +110,7 @@ async function main() {
   console.log('  Pool LIFE:', poolLife.toString(), '(bump:', poolLifeBump, ')')
 
   // Connect to devnet
-  const connection = new Connection(RPC_URL, 'confirmed')
+  const connection = await getWorkingConnection()
 
   // Check current balance
   const balance = await connection.getBalance(authority.publicKey)
